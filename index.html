@@ -140,6 +140,7 @@
             border-collapse: separate;
             border-spacing: 0;
             min-width: 1400px;
+            table-layout: fixed; /* Important for spanning calculations */
         }
 
         .calendar-table th {
@@ -152,13 +153,19 @@
             color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            width: 40px; /* Base width for day columns */
         }
 
         .calendar-table th.event-name-cell {
             padding: 16px 20px;
             text-align: left;
+            width: 220px; /* Fixed width for name column */
             min-width: 220px;
             background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+            z-index: 20;
+            position: sticky;
+            left: 0;
+            border-right: 1px solid var(--color-border);
         }
 
         .calendar-table th.date-number {
@@ -177,11 +184,12 @@
         .calendar-table td {
             border-right: 1px solid var(--color-border);
             border-bottom: 1px solid var(--color-border);
-            height: 50px;
+            height: 60px;
             position: relative;
             vertical-align: middle;
             background: var(--color-bg-secondary);
-            transition: background 0.2s ease;
+            padding: 0;
+            overflow: visible; /* Allow bars to span */
         }
 
         .calendar-table td:hover {
@@ -191,11 +199,13 @@
         .event-name-cell {
             font-size: 13px;
             font-weight: 500;
-            padding: 16px 20px;
-            min-width: 220px;
+            padding: 0 20px;
             border-right: 2px solid var(--color-border);
-            background: linear-gradient(90deg, rgba(6, 182, 212, 0.05) 0%, transparent 100%);
-            position: relative;
+            background: var(--color-bg-secondary); /* Solid bg for sticky */
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
 
         .event-name-cell::after {
@@ -214,66 +224,85 @@
             width: 100%;
             display: flex;
             align-items: center;
-            padding: 0 4px;
         }
 
         .event-bar {
             position: absolute;
-            height: 28px;
+            height: 32px;
             top: 50%;
             transform: translateY(-50%);
             border-radius: 6px;
-            font-size: 10px;
+            font-size: 11px;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
             font-weight: 600;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             letter-spacing: 0.3px;
-            min-width: 30px;
+            z-index: 10;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 8px;
         }
 
         .event-bar:hover {
-            transform: translateY(calc(-50% - 3px)) scale(1.05);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(calc(-50% - 3px));
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.5);
+            z-index: 100; /* Bring to very front on hover */
+            overflow: visible; /* Show content if it was clipped */
+        }
+
+        /* Hover Tooltip */
+        .event-bar .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: rgba(15, 23, 42, 0.95);
+            color: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: pre;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            width: max-content;
+            max-width: 300px;
+        }
+
+        .event-bar:hover .tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
         }
 
         .event-bar.rotation {
-            background: linear-gradient(135deg, var(--color-accent-rotation) 0%, #06a3c4 100%);
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-        }
-
-        .event-bar.rotation:hover {
-            box-shadow: 0 8px 24px rgba(6, 182, 212, 0.6);
+            background: linear-gradient(90deg, var(--color-accent-rotation) 0%, #06a3c4 100%);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
         }
 
         .event-bar.svs {
-            background: linear-gradient(135deg, var(--color-accent-svs) 0%, #ea580c 100%);
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
-        }
-
-        .event-bar.svs:hover {
-            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.6);
+            background: linear-gradient(90deg, var(--color-accent-svs) 0%, #ea580c 100%);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
         }
 
         .event-bar.other {
-            background: linear-gradient(135deg, var(--color-accent-other) 0%, #9333ea 100%);
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
-        }
-
-        .event-bar.other:hover {
-            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.6);
+            background: linear-gradient(90deg, var(--color-accent-other) 0%, #9333ea 100%);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
         }
 
         .today-marker {
-            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
-            position: relative;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%) !important;
         }
 
         .today-marker::before {
@@ -283,17 +312,9 @@
             top: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+            background: var(--color-primary);
             z-index: 5;
-        }
-
-        .today-marker::after {
-            position: absolute;
-            right: 0;
-            bottom: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-            width: 100%;
+            box-shadow: 0 0 10px var(--color-primary);
         }
 
         .info-box {
@@ -305,14 +326,6 @@
             font-size: 14px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
-        }
-
-        .info-box h3 {
-            margin: 0 0 24px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--color-text-primary);
-            letter-spacing: -0.5px;
         }
 
         .legend {
@@ -337,23 +350,6 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .calendar-wrapper::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .calendar-wrapper::-webkit-scrollbar-track {
-            background: var(--color-bg-primary);
-        }
-
-        .calendar-wrapper::-webkit-scrollbar-thumb {
-            background: var(--color-primary);
-            border-radius: 4px;
-        }
-
-        .calendar-wrapper::-webkit-scrollbar-thumb:hover {
-            background: var(--color-primary-dark);
-        }
-
         @media (prefers-color-scheme: light) {
             :root {
                 --color-bg-primary: #f8fafc;
@@ -372,30 +368,12 @@
                 background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(8, 145, 178, 0.03) 100%);
             }
 
-            .calendar-table th.event-name-cell {
-                background: linear-gradient(90deg, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0.02) 100%);
-            }
-
             .info-box {
                 background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
             }
-
+            
             .event-name-cell {
-                background: linear-gradient(90deg, rgba(6, 182, 212, 0.08) 0%, transparent 100%);
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .container {
-                padding: 24px 16px;
-            }
-
-            .header h1 {
-                font-size: 32px;
-            }
-
-            .calendar-table {
-                min-width: 900px;
+                 background: #ffffff;
             }
         }
     </style>
@@ -453,87 +431,15 @@
 
     <script>
         const events = [
-            {
-                name: '幸福自選宝庫',
-                type: 'rotation',
-                startDate: '2026-01-16',
-                startTime: '11:00',
-                endDate: '2026-01-23',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: 'ラッキー抽選',
-                type: 'rotation',
-                startDate: '2026-01-23',
-                startTime: '11:00',
-                endDate: '2026-01-30',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: '弾丸のやつ',
-                type: 'rotation',
-                startDate: '2026-01-30',
-                startTime: '11:00',
-                endDate: '2026-02-06',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: 'ラッキー商店',
-                type: 'rotation',
-                startDate: '2026-02-06',
-                startTime: '11:00',
-                endDate: '2026-02-13',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: '284内部首都戦',
-                type: 'other',
-                startDate: '2026-01-23',
-                startTime: '23:00',
-                endDate: '2026-01-24',
-                endTime: '03:00',
-                cycle: 14
-            },
-            {
-                name: 'SvS侵略権争い（準決勝）',
-                type: 'svs',
-                startDate: '2026-01-11',
-                startTime: '11:00',
-                endDate: '2026-01-17',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: 'SvS本戦（準決勝）',
-                type: 'svs',
-                startDate: '2026-01-17',
-                startTime: '23:00',
-                endDate: '2026-01-18',
-                endTime: '03:00',
-                cycle: 28
-            },
-            {
-                name: 'SvS侵略権争い（決勝）',
-                type: 'svs',
-                startDate: '2026-01-18',
-                startTime: '11:00',
-                endDate: '2026-01-24',
-                endTime: '10:59',
-                cycle: 28
-            },
-            {
-                name: 'SvS本戦（決勝）',
-                type: 'svs',
-                startDate: '2026-01-24',
-                startTime: '23:00',
-                endDate: '2026-01-25',
-                endTime: '03:00',
-                cycle: 28
-            }
+            { name: '幸福自選宝庫', type: 'rotation', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+            { name: 'ラッキー抽選', type: 'rotation', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+            { name: '弾丸のやつ', type: 'rotation', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+            { name: 'ラッキー商店', type: 'rotation', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 },
+            { name: '284内部首都戦', type: 'other', startDate: '2026-01-23', startTime: '23:00', endDate: '2026-01-24', endTime: '03:00', cycle: 14 },
+            { name: 'SvS侵略権争い（準決勝）', type: 'svs', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
+            { name: 'SvS本戦（準決勝）', type: 'svs', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 },
+            { name: 'SvS侵略権争い（決勝）', type: 'svs', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
+            { name: 'SvS本戦（決勝）', type: 'svs', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
         ];
 
         function parseDateTime(dateStr, timeStr) {
@@ -551,16 +457,19 @@
             let current = new Date(eventStart);
 
             while (current <= endDate) {
-                if (current >= startDate) {
+                // If the cycle passes the end date, stop
+                const occEnd = new Date(current.getTime() + (eventEnd.getTime() - eventStart.getTime()));
+                
+                // Only add if it overlaps the requested window at all
+                if (occEnd >= startDate && current <= endDate) {
                     occurrences.push({
                         ...event,
                         actualStart: new Date(current),
-                        actualEnd: new Date(current.getTime() + (eventEnd.getTime() - eventStart.getTime()))
+                        actualEnd: occEnd
                     });
                 }
                 current = new Date(current.getTime() + cycleDays * 24 * 60 * 60 * 1000);
             }
-
             return occurrences;
         }
 
@@ -569,14 +478,19 @@
             const lastDay = new Date(year, month + 1, 0);
             const daysInMonth = lastDay.getDate();
 
-            const monthStart = new Date(year, month, 1);
-            monthStart.setDate(monthStart.getDate() - 90);
-            const monthEnd = new Date(year, month, daysInMonth);
-            monthEnd.setDate(monthEnd.getDate() + 90);
+            // Visible range: Month Start to Month End
+            const monthStart = new Date(year, month, 1, 0, 0, 0);
+            const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59);
+
+            // Fetch occurrences for a wider range to catch overlaps
+            const fetchStart = new Date(monthStart);
+            fetchStart.setDate(fetchStart.getDate() - 30);
+            const fetchEnd = new Date(monthEnd);
+            fetchEnd.setDate(fetchEnd.getDate() + 30);
 
             const allOccurrences = [];
             events.forEach(event => {
-                allOccurrences.push(...generateOccurrences(event, monthStart, monthEnd));
+                allOccurrences.push(...generateOccurrences(event, fetchStart, fetchEnd));
             });
 
             const table = document.getElementById('calendarTable');
@@ -586,11 +500,9 @@
                              'July', 'August', 'September', 'October', 'November', 'December'];
             document.getElementById('monthTitle').textContent = `${monthNames[month]} ${year}`;
 
+            // --- Header Rows ---
             const dateHeaderRow = document.createElement('tr');
-            const emptyCell = document.createElement('th');
-            emptyCell.className = 'event-name-cell';
-            dateHeaderRow.appendChild(emptyCell);
-
+            dateHeaderRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' }));
             for (let day = 1; day <= daysInMonth; day++) {
                 const th = document.createElement('th');
                 th.className = 'date-header date-number';
@@ -600,85 +512,108 @@
             table.appendChild(dateHeaderRow);
 
             const dayOfWeekRow = document.createElement('tr');
-            const emptyCell2 = document.createElement('th');
-            emptyCell2.className = 'event-name-cell';
-            dayOfWeekRow.appendChild(emptyCell2);
-
+            dayOfWeekRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' }));
             const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateObj = new Date(year, month, day);
-                const dayOfWeek = dateObj.getDay();
                 const th = document.createElement('th');
                 th.className = 'date-header day-of-week';
-                th.textContent = dayNames[dayOfWeek];
+                th.textContent = dayNames[dateObj.getDay()];
                 dayOfWeekRow.appendChild(th);
             }
             table.appendChild(dayOfWeekRow);
 
+            // --- Event Rows ---
             const uniqueEvents = [...new Set(events.map(e => e.name))];
 
             uniqueEvents.forEach(eventName => {
                 const row = document.createElement('tr');
                 
+                // Name Cell
                 const nameCell = document.createElement('td');
                 nameCell.className = 'event-name-cell';
                 nameCell.textContent = eventName;
                 row.appendChild(nameCell);
 
-                const eventOccurrences = allOccurrences.filter(occ => occ.name === eventName);
-
+                // Create empty Day Cells first
+                const dayCells = [];
                 for (let day = 1; day <= daysInMonth; day++) {
                     const cell = document.createElement('td');
                     const dateObj = new Date(year, month, day);
-                    
                     const today = new Date();
                     if (dateObj.toDateString() === today.toDateString()) {
                         cell.classList.add('today-marker');
                     }
-
-                    const cellContent = document.createElement('div');
-                    cellContent.className = 'event-cell-content';
-
-                    eventOccurrences.forEach(occ => {
-                        const currentDayStart = new Date(dateObj);
-                        currentDayStart.setHours(0, 0, 0, 0);
-                        const currentDayEnd = new Date(dateObj);
-                        currentDayEnd.setHours(23, 59, 59, 999);
-
-                        if (occ.actualStart <= currentDayEnd && occ.actualEnd >= currentDayStart) {
-                            const bar = document.createElement('div');
-                            bar.className = `event-bar ${occ.type}`;
-                            bar.title = `${occ.name}\n${occ.actualStart.toLocaleString('ja-JP')} ~ ${occ.actualEnd.toLocaleString('ja-JP')}`;
-                            
-                            if (occ.actualStart.getDate() === day && occ.actualStart.getMonth() === month) {
-                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
-                                bar.style.left = startPercent + '%';
-                            } else if (occ.actualStart.getDate() < day) {
-                                bar.style.left = '0%';
-                            }
-
-                            if (occ.actualStart.getDate() === day && occ.actualEnd.getDate() === day) {
-                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
-                                const endPercent = (occ.actualEnd.getHours() * 60 + occ.actualEnd.getMinutes()) / (24 * 60) * 100;
-                                bar.style.width = (endPercent - startPercent) + '%';
-                            } else if (occ.actualStart.getDate() === day) {
-                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
-                                bar.style.width = (100 - startPercent) + '%';
-                            } else if (occ.actualEnd.getDate() === day) {
-                                const endPercent = (occ.actualEnd.getHours() * 60 + occ.actualEnd.getMinutes()) / (24 * 60) * 100;
-                                bar.style.width = endPercent + '%';
-                            } else {
-                                bar.style.width = '100%';
-                            }
-
-                            cellContent.appendChild(bar);
-                        }
-                    });
-
-                    cell.appendChild(cellContent);
                     row.appendChild(cell);
+                    dayCells.push(cell); // Store reference (index 0 = day 1)
                 }
                 table.appendChild(row);
+
+                // --- Render Events as Long Bars ---
+                const eventOccurrences = allOccurrences.filter(occ => occ.name === eventName);
+
+                eventOccurrences.forEach(occ => {
+                    // Calculate intersection with current month
+                    const startInView = occ.actualStart < monthStart ? monthStart : occ.actualStart;
+                    const endInView = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
+
+                    if (startInView > endInView) return; // No overlap
+
+                    // Calculate Start Day Index (1-based)
+                    const startDayIndex = startInView.getDate();
+                    
+                    // Duration in MS
+                    const durationMs = endInView.getTime() - startInView.getTime();
+                    const totalDaysSpan = durationMs / (1000 * 60 * 60 * 24);
+
+                    // If event starts before month, we clamp visually but calculation is tricky
+                    // Easier method: Find start cell index.
+                    // If event starts previous month, start cell is index 0 (Day 1).
+                    // We need to calculate offset relative to Day 1 00:00.
+                    
+                    let targetCellIndex = 0;
+                    let leftOffsetPercent = 0;
+                    let widthPercent = 0;
+
+                    // 1. Determine which cell acts as the anchor
+                    if (occ.actualStart < monthStart) {
+                        targetCellIndex = 0; // Anchor to Day 1
+                        // Calculate width from Day 1 00:00 to End
+                        const durationFromMonthStart = endInView.getTime() - monthStart.getTime();
+                        widthPercent = (durationFromMonthStart / (24 * 60 * 60 * 1000)) * 100;
+                    } else {
+                        targetCellIndex = occ.actualStart.getDate() - 1; // 0-based index
+                        // Calculate offset within the start day
+                        const startMins = occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes();
+                        leftOffsetPercent = (startMins / 1440) * 100;
+                        
+                        // Width is total duration
+                        widthPercent = (durationMs / (24 * 60 * 60 * 1000)) * 100;
+                    }
+
+                    // Create the Bar
+                    const bar = document.createElement('div');
+                    bar.className = `event-bar ${occ.type}`;
+                    bar.textContent = occ.name;
+                    
+                    // Style for Long Span
+                    bar.style.left = `${leftOffsetPercent}%`;
+                    bar.style.width = `${widthPercent}%`;
+                    
+                    // Tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip';
+                    tooltip.innerHTML = `${occ.name}<br>${occ.actualStart.toLocaleString('ja-JP')} ~ <br>${occ.actualEnd.toLocaleString('ja-JP')}`;
+                    bar.appendChild(tooltip);
+
+                    // Append to the correct cell
+                    if (dayCells[targetCellIndex]) {
+                        // We need a wrapper inside the cell to handle absolute positioning relative to content flow if needed,
+                        // but here td is relative, so we append directly.
+                        // Note: If width exceeds cell, it spills over (visible overflow).
+                        dayCells[targetCellIndex].appendChild(bar);
+                    }
+                });
             });
         }
 
@@ -692,6 +627,7 @@
             renderCalendar(parseInt(e.target.value));
         });
 
+        // Init
         goToToday();
     </script>
 </body>
