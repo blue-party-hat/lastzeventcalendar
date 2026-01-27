@@ -16,7 +16,7 @@
             --color-primary-dark: #0891b2;
             --color-border: rgba(148, 163, 184, 0.1);
             --color-hover: rgba(6, 182, 212, 0.05);
-            --timeline-color: #f43f5e; /* Bright red/pink for visibility */
+            --timeline-color: #f43f5e;
         }
 
         * { box-sizing: border-box; }
@@ -31,39 +31,50 @@
         }
 
         .container {
-            max-width: 1800px;
-            margin: 0 auto;
-            padding: 40px 24px;
+            width: 100%;
+            max-width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         .header {
-            margin-bottom: 40px;
+            margin-bottom: 20px;
             text-align: center;
+            flex-shrink: 0;
         }
 
         .header h1 {
-            margin: 0 0 12px 0;
-            font-size: 32px;
+            margin: 0 0 8px 0;
+            font-size: 24px;
             font-weight: 700;
             background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        
+        .header p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
 
         .controls {
             display: flex;
-            gap: 16px;
-            margin-bottom: 32px;
+            gap: 12px;
+            margin-bottom: 20px;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .controls select, .controls button {
-            padding: 10px 16px;
+            padding: 8px 12px;
             border: 1px solid var(--color-border);
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 13px;
             background: var(--color-bg-secondary);
             color: var(--color-text-primary);
             cursor: pointer;
@@ -79,111 +90,143 @@
         .calendar-wrapper {
             background: var(--color-bg-secondary);
             border: 1px solid var(--color-border);
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
-            overflow-x: auto;
-            position: relative; /* For absolute timeline positioning */
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .calendar-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            min-width: 1400px;
-            table-layout: fixed;
-        }
-
-        .calendar-table th {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(8, 145, 178, 0.05) 100%);
-            border-bottom: 1px solid var(--color-border);
-            padding: 12px 4px;
-            text-align: center;
-            width: 45px;
+        .table-scroller {
+            overflow: auto;
+            flex-grow: 1;
             position: relative;
         }
 
-        /* Group Header Styling */
-        .group-header-row td {
-            background: rgba(15, 23, 42, 0.6);
-            padding: 12px 20px;
-            font-weight: 700;
-            color: var(--color-primary);
-            font-size: 14px;
-            border-bottom: 1px solid var(--color-border);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .calendar-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 100%;
+            table-layout: fixed;
         }
 
-        .calendar-table th.event-name-cell {
-            padding: 16px 20px;
-            text-align: left;
-            width: 240px;
-            min-width: 240px;
-            background: var(--color-bg-secondary);
-            z-index: 20;
-            position: sticky;
-            left: 0;
+        /* --- Header Cells --- */
+        .calendar-table th {
+            background: #1e293b; /* Fallback */
+            background: linear-gradient(180deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
+            border-bottom: 1px solid var(--color-border);
             border-right: 1px solid var(--color-border);
-            box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+            padding: 8px 2px;
+            text-align: center;
+            width: 35px; /* Narrower columns */
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            height: 40px;
+        }
+
+        /* Sticky Left Column Header */
+        .calendar-table th.event-name-header {
+            width: 160px; /* Reduced width */
+            min-width: 160px;
+            left: 0;
+            z-index: 40;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            border-right: 2px solid var(--color-border);
+            background: #1e293b; /* Opaque bg for sticky */
         }
 
         .calendar-table th.date-number {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 700;
             color: var(--color-primary);
         }
 
         .calendar-table th.day-of-week {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             color: var(--color-text-secondary);
+            top: 40px; /* Below date header */
+            height: 25px;
+            padding: 4px 0;
+        }
+        
+        /* Fix secondary header sticky top */
+        .header-row-2 th {
+            top: 40px;
         }
 
+        /* --- Body Cells --- */
         .calendar-table td {
             border-right: 1px solid var(--color-border);
             border-bottom: 1px solid var(--color-border);
-            height: 48px; /* Slightly thinner rows */
+            height: 36px; /* Compact row height */
             position: relative;
             vertical-align: middle;
             padding: 0;
-            overflow: visible;
         }
 
         .calendar-table td:hover {
             background: var(--color-hover);
         }
 
+        /* Group Header Row */
+        .group-header-row td {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 8px 12px;
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 12px;
+            border-bottom: 1px solid var(--color-border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            left: 0;
+            z-index: 25; /* Below header, above content */
+        }
+        
+        /* Sticky Left Column (Event Names) */
         .event-name-cell {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
-            padding: 0 20px;
+            padding: 0 12px;
             border-right: 2px solid var(--color-border);
             background: var(--color-bg-secondary);
             position: sticky;
             left: 0;
-            z-index: 15;
-            color: var(--color-text-secondary);
+            z-index: 20;
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+            /* Center vertically */
+            vertical-align: middle;
+            display: table-cell; 
         }
 
+        /* Event Bars */
         .event-bar {
             position: absolute;
-            height: 24px; /* Thinner bar */
+            height: 20px; /* Thinner bar for compact mode */
             top: 50%;
             transform: translateY(-50%);
             border-radius: 4px;
             cursor: pointer;
             z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             /* No text inside */
         }
 
         .event-bar:hover {
-            transform: translateY(calc(-50% - 2px)) scaleY(1.1);
-            z-index: 100;
             filter: brightness(1.2);
+            z-index: 100;
         }
 
         /* Tooltip */
@@ -191,22 +234,22 @@
             position: absolute;
             bottom: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-8px);
+            transform: translateX(-50%) translateY(-5px);
             background: rgba(15, 23, 42, 0.95);
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 6px 10px;
+            border-radius: 4px;
             font-size: 11px;
             white-space: pre;
             text-align: center;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.1s;
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(4px);
             width: max-content;
             z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
         .event-bar:hover .tooltip {
@@ -217,23 +260,37 @@
         .timeline-indicator {
             position: absolute;
             top: 0;
-            bottom: 0;
             width: 2px;
             background: var(--timeline-color);
-            z-index: 50;
+            z-index: 28; /* Above grid, below header */
             pointer-events: none;
-            box-shadow: 0 0 8px var(--timeline-color);
+            box-shadow: 0 0 6px var(--timeline-color);
         }
 
-        .timeline-head {
-            position: absolute;
-            top: -6px;
-            left: -4px;
-            width: 10px;
-            height: 10px;
-            background: var(--timeline-color);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--timeline-color);
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+            .calendar-table th.event-name-header,
+            .event-name-cell {
+                width: 120px; /* Even smaller left col */
+                min-width: 120px;
+                font-size: 11px;
+                padding: 0 8px;
+            }
+            .calendar-table th {
+                width: 30px; /* Narrower days */
+            }
+            .event-bar {
+                height: 16px;
+            }
+            .calendar-table td {
+                height: 32px;
+            }
         }
     </style>
 </head>
@@ -245,28 +302,24 @@
         </div>
 
         <div class="controls">
-            <select id="monthSelect">
-                <!-- Javascript will populate -->
-            </select>
+            <select id="monthSelect"></select>
             <button onclick="goToToday()">Today</button>
         </div>
 
-        <div class="calendar-wrapper" id="calendarWrapper">
-            <!-- Timeline Line -->
-            <div id="timeline" class="timeline-indicator" style="display: none;">
-                <div class="timeline-head"></div>
+        <div class="calendar-wrapper">
+            <div class="table-scroller" id="tableScroller">
+                <!-- Timeline will be injected here absolutely positioned relative to scroller content -->
+                <div id="timeline" class="timeline-indicator" style="display: none;"></div>
+                
+                <table class="calendar-table" id="calendarTable"></table>
             </div>
-            
-            <table class="calendar-table" id="calendarTable"></table>
         </div>
     </div>
 
     <script>
-        // --- 1. Event Data with Unique Colors ---
-        // Each event has a specific hex color assigned manually for uniqueness.
+        // Data Groups
         const groups = [
             {
-                id: 'weekly',
                 title: '週次イベント',
                 events: [
                     { name: '幸福自選宝庫', color: '#0ea5e9', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
@@ -276,7 +329,6 @@
                 ]
             },
             {
-                id: 'svs_semi',
                 title: 'SvS（準決勝）',
                 events: [
                     { name: 'SvS侵略権争い', color: '#f59e0b', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
@@ -284,7 +336,6 @@
                 ]
             },
             {
-                id: 'svs_final',
                 title: 'SvS（決勝）',
                 events: [
                     { name: 'SvS侵略権争い', color: '#a855f7', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
@@ -293,10 +344,6 @@
             }
         ];
 
-        // Flatten events for calculation logic
-        const allEventDefs = groups.flatMap(g => g.events);
-
-        // --- 2. Date Utilities ---
         function parseDateTime(dateStr, timeStr) {
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hour, minute] = timeStr.split(':').map(Number);
@@ -306,38 +353,29 @@
         function generateOccurrences(event, rangeStart, rangeEnd) {
             const occurrences = [];
             const eventStart = parseDateTime(event.startDate, event.startTime);
-            const eventEnd = parseDateTime(event.endDate, event.endTime);
-            const duration = eventEnd.getTime() - eventStart.getTime();
+            const duration = parseDateTime(event.endDate, event.endTime) - eventStart;
             const cycleDays = event.cycle;
 
             let current = new Date(eventStart);
-
-            // Fast forward to near range
             while (current.getTime() + duration < rangeStart.getTime()) {
-                current = new Date(current.getTime() + cycleDays * 24 * 60 * 60 * 1000);
+                current = new Date(current.getTime() + cycleDays * 86400000);
             }
 
             while (current <= rangeEnd) {
                 const occEnd = new Date(current.getTime() + duration);
                 if (occEnd >= rangeStart && current <= rangeEnd) {
-                    occurrences.push({
-                        ...event,
-                        actualStart: new Date(current),
-                        actualEnd: occEnd
-                    });
+                    occurrences.push({ ...event, actualStart: new Date(current), actualEnd: occEnd });
                 }
-                current = new Date(current.getTime() + cycleDays * 24 * 60 * 60 * 1000);
+                current = new Date(current.getTime() + cycleDays * 86400000);
             }
             return occurrences;
         }
 
-        // --- 3. Calendar Rendering ---
         const monthSelect = document.getElementById('monthSelect');
-        // Populate Select for 2026
         for(let i=0; i<12; i++) {
             const opt = document.createElement('option');
             opt.value = i;
-            opt.textContent = new Date(2026, i, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            opt.textContent = new Date(2026, i, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
             monthSelect.appendChild(opt);
         }
 
@@ -347,18 +385,17 @@
             const monthStart = new Date(year, monthIndex, 1);
             const monthEnd = new Date(year, monthIndex, daysInMonth, 23, 59, 59);
 
-            document.getElementById('monthTitleDisplay').textContent = 
-                `${new Date(year, monthIndex).toLocaleString('en-US', { month: 'long' })} ${year}`;
-
+            document.getElementById('monthTitleDisplay').textContent = `${new Date(year, monthIndex).toLocaleString('en-US', { month: 'long' })} ${year}`;
+            
             const table = document.getElementById('calendarTable');
             table.innerHTML = '';
 
-            // --- Header: Dates ---
+            // --- Header 1: Dates ---
             const dateRow = document.createElement('tr');
-            const emptyCorner = document.createElement('th');
-            emptyCorner.className = 'event-name-cell';
-            emptyCorner.textContent = 'Event / Date';
-            dateRow.appendChild(emptyCorner);
+            const spacer = document.createElement('th');
+            spacer.className = 'event-name-header';
+            spacer.textContent = 'Event / Date';
+            dateRow.appendChild(spacer);
 
             for (let d = 1; d <= daysInMonth; d++) {
                 const th = document.createElement('th');
@@ -368,10 +405,14 @@
             }
             table.appendChild(dateRow);
 
-            // --- Header: Days of Week ---
+            // --- Header 2: Days ---
             const dayRow = document.createElement('tr');
-            dayRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' })); // spacer
-            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+            dayRow.className = 'header-row-2';
+            const spacer2 = document.createElement('th');
+            spacer2.className = 'event-name-header'; 
+            dayRow.appendChild(spacer2); // Spacer below spacer
+            
+            const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateObj = new Date(year, monthIndex, d);
                 const th = document.createElement('th');
@@ -381,28 +422,31 @@
             }
             table.appendChild(dayRow);
 
-            // --- Render Groups ---
+            // --- Rows ---
             groups.forEach(group => {
-                // 1. Group Title Row
+                // Group Header
                 const groupRow = document.createElement('tr');
                 groupRow.className = 'group-header-row';
                 const titleCell = document.createElement('td');
-                titleCell.colSpan = daysInMonth + 1; // Span entire width
+                titleCell.colSpan = daysInMonth + 1;
+                // Sticky calculation handled by CSS for first cell, but this spans.
+                // To make "Sticky" group header work for the text, we need the text to stick? 
+                // CSS Sticky on TD works if container scrolls.
+                titleCell.style.position = 'sticky';
+                titleCell.style.left = 0;
                 titleCell.textContent = group.title;
                 groupRow.appendChild(titleCell);
                 table.appendChild(groupRow);
 
-                // 2. Event Rows
                 group.events.forEach(eventDef => {
                     const row = document.createElement('tr');
                     
-                    // Event Name
                     const nameCell = document.createElement('td');
                     nameCell.className = 'event-name-cell';
                     nameCell.textContent = eventDef.name;
+                    nameCell.title = eventDef.name; // Tooltip for cut-off text
                     row.appendChild(nameCell);
 
-                    // Day Cells Container
                     const dayCells = [];
                     for (let d = 1; d <= daysInMonth; d++) {
                         const cell = document.createElement('td');
@@ -411,50 +455,31 @@
                     }
                     table.appendChild(row);
 
-                    // Calculate and Draw Bars
-                    // Range extended for calculation to handle spanning
+                    // Occurrences
                     const calcStart = new Date(monthStart); calcStart.setDate(calcStart.getDate()-30);
                     const calcEnd = new Date(monthEnd); calcEnd.setDate(calcEnd.getDate()+30);
-                    
                     const occs = generateOccurrences(eventDef, calcStart, calcEnd);
 
                     occs.forEach(occ => {
-                        // Only draw if overlap with THIS month
                         if (occ.actualEnd < monthStart || occ.actualStart > monthEnd) return;
 
-                        // Logic: Find start day index (0-based) relative to month start
-                        // If starts before month, index is 0.
-                        let startIndex = 0;
-                        let startOffsetPct = 0;
-
-                        if (occ.actualStart < monthStart) {
-                            startIndex = 0;
-                            startOffsetPct = 0;
-                        } else {
+                        let startIndex = 0, startPct = 0;
+                        if (occ.actualStart >= monthStart) {
                             startIndex = occ.actualStart.getDate() - 1;
-                            // Time offset
-                            const minutes = occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes();
-                            startOffsetPct = (minutes / 1440) * 100;
+                            startPct = (occ.actualStart.getHours()*60 + occ.actualStart.getMinutes()) / 1440 * 100;
                         }
 
-                        // Calculate Width
-                        // End time relative to month start vs Start time relative to month start
-                        const effectiveStart = occ.actualStart < monthStart ? monthStart : occ.actualStart;
-                        const effectiveEnd = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
-                        
-                        const durationMs = effectiveEnd - effectiveStart;
-                        const dayMs = 24 * 60 * 60 * 1000;
-                        const widthPct = (durationMs / dayMs) * 100;
+                        const effStart = occ.actualStart < monthStart ? monthStart : occ.actualStart;
+                        const effEnd = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
+                        const widthPct = (effEnd - effStart) / 86400000 * 100;
 
-                        // Draw
                         if (dayCells[startIndex]) {
                             const bar = document.createElement('div');
                             bar.className = 'event-bar';
                             bar.style.backgroundColor = occ.color;
-                            bar.style.left = `${startOffsetPct}%`;
+                            bar.style.left = `${startPct}%`;
                             bar.style.width = `${widthPct}%`;
 
-                            // Tooltip content
                             const tooltip = document.createElement('div');
                             tooltip.className = 'tooltip';
                             tooltip.innerHTML = `${occ.name}<br>${occ.actualStart.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})} ~ ${occ.actualEnd.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}`;
@@ -466,85 +491,35 @@
                 });
             });
 
-            updateTimeline(monthIndex, year, daysInMonth);
+            updateTimeline(monthIndex, year);
         }
 
-        // --- 4. Timeline Logic ---
-        function updateTimeline(monthIndex, year, daysInMonth) {
+        function updateTimeline(monthIndex, year) {
             const now = new Date();
             const timeline = document.getElementById('timeline');
             
-            // Only show if current view is current month/year
             if (now.getMonth() === monthIndex && now.getFullYear() === year) {
                 timeline.style.display = 'block';
                 
-                // Calculate position
-                // We need to account for the "Name Column" width (240px)
-                // And then find percentage across the remaining width
-                
-                const currentDay = now.getDate(); // 1-31
-                const currentMins = now.getHours() * 60 + now.getMinutes();
-                
-                // There are `daysInMonth` columns.
-                // Position = ( (Day-1) + (Mins/1440) ) / TotalDays
-                const dayProgress = (currentDay - 1) + (currentMins / 1440);
-                const totalProgress = dayProgress / daysInMonth;
-
-                // The timeline sits inside calendar-wrapper which is `relative`.
-                // But the table scrolls inside it. This is tricky with CSS sticky headers.
-                // Easier approach: Put timeline inside the table or calculate pixel offset.
-                // CSS Grid is best, but using Table here.
-                // Let's attach timeline to the wrapper and rely on simple percentages?
-                // No, because wrapper scrolls.
-                
-                // Correct approach for scrolling table:
-                // Timeline needs to be positioned absolute relative to the TABLE content (scrolling area), 
-                // but disregarding the sticky header? 
-                // Actually, let's just create a special absolute div inside the first row of table or similar.
-                
-                // Simplest robust way: 
-                // Calculate left offset: 240px (sticky col) + (totalWidth - 240px) * percentage?
-                // Since table layout is fixed, we can estimate. 
-                // Better: Use a dedicated container overlaid on the grid part.
-                
-                // For this implementation, let's inject the timeline into the TABLE itself, 
-                // perhaps as a absolute div in a row that spans everything?
-                
-                // Let's refine the CSS left calculation dynamically:
-                const nameColWidth = 240;
-                // We need the width of one day column.
-                // It varies.
-                
-                // RE-APPROACH: 
-                // Put timeline in the wrapper. 
-                // But update its 'left' based on the specific cell of "Today".
-                
+                // Need to wait for render to get positions
                 setTimeout(() => {
                     const table = document.getElementById('calendarTable');
-                    // Find header cell for today
-                    const headers = table.querySelectorAll('.date-number');
-                    if (headers.length >= currentDay) {
-                        const todayHeader = headers[currentDay - 1]; // 0-indexed
-                        
-                        // Get position relative to table
-                        const headerRect = todayHeader.getBoundingClientRect();
-                        const tableRect = table.getBoundingClientRect();
-                        
-                        // Calculate offset within the day (time)
-                        const dayWidth = headerRect.width;
-                        const timeOffset = (currentMins / 1440) * dayWidth;
-                        
-                        const relativeLeft = (headerRect.left - tableRect.left) + timeOffset;
+                    const dayHeaders = table.querySelectorAll('tr:first-child th.date-number');
+                    const todayHeader = dayHeaders[now.getDate() - 1];
 
-                        timeline.style.left = `${relativeLeft}px`;
-                        // Timeline height should match table height
-                        timeline.style.height = `${table.scrollHeight}px`;
+                    if (todayHeader) {
+                        const offsetLeft = todayHeader.offsetLeft;
+                        const dayWidth = todayHeader.offsetWidth;
+                        const timePct = (now.getHours()*60 + now.getMinutes()) / 1440;
                         
-                        // Append to table so it scrolls with it
-                        table.appendChild(timeline);
+                        const leftPos = offsetLeft + (dayWidth * timePct);
+                        
+                        timeline.style.left = `${leftPos}px`;
+                        timeline.style.height = `${table.offsetHeight}px`;
+                        // Ensure timeline starts below the sticky header visually if desired, 
+                        // or just top:0 of scroller.
                     }
-                }, 100);
-
+                }, 50);
             } else {
                 timeline.style.display = 'none';
             }
@@ -554,18 +529,23 @@
             const now = new Date();
             monthSelect.value = now.getMonth();
             renderCalendar(now.getMonth());
+            
+            // Scroll to today
+            setTimeout(() => {
+                const scroller = document.getElementById('tableScroller');
+                const timeline = document.getElementById('timeline');
+                if (timeline.style.display !== 'none') {
+                    // Center the timeline
+                    const scrollLeft = parseInt(timeline.style.left) - (scroller.clientWidth / 2);
+                    scroller.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                }
+            }, 100);
         }
 
-        // Init
         monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
-        goToToday();
         
-        // Update timeline every minute
-        setInterval(() => {
-            const m = parseInt(monthSelect.value);
-            renderCalendar(m); 
-        }, 60000);
-
+        // Initial load
+        goToToday();
     </script>
 </body>
 </html>
