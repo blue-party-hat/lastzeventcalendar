@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Last Z Event Scheduler</title>
+    <title>Last Z Event Scheduler - Calendar Grid</title>
     <style>
         :root {
             --color-bg-primary: rgba(252, 252, 249, 1);
             --color-text-primary: rgba(19, 52, 59, 1);
             --color-primary: rgba(33, 128, 141, 1);
             --color-border: rgba(94, 82, 64, 0.2);
-            --color-success: rgba(33, 128, 141, 1);
-            --color-warning: rgba(168, 75, 47, 1);
         }
 
         * {
@@ -27,7 +25,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
@@ -46,130 +44,150 @@
             font-size: 14px;
         }
 
-        .scheduler-wrapper {
+        .controls {
             display: flex;
             gap: 20px;
-            height: 800px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls select, .controls button {
+            padding: 8px 12px;
             border: 1px solid var(--color-border);
-            border-radius: 8px;
-            overflow: hidden;
-            background: white;
-        }
-
-        .events-panel {
-            width: 250px;
-            border-right: 1px solid var(--color-border);
-            overflow-y: auto;
-            padding: 0;
-        }
-
-        .event-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--color-border);
+            border-radius: 4px;
             font-size: 13px;
-            font-weight: 500;
+            background: white;
             cursor: pointer;
+        }
+
+        .controls button {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            font-weight: 500;
             transition: background 0.2s;
         }
 
-        .event-item:hover {
-            background: rgba(33, 128, 141, 0.05);
+        .controls button:hover {
+            background: rgba(33, 128, 141, 0.8);
         }
 
-        .event-item.active {
-            background: rgba(33, 128, 141, 0.1);
-            border-left: 3px solid var(--color-primary);
-            padding-left: 13px;
+        .month-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--color-text-primary);
         }
 
-        .schedule-wrapper {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
+        .calendar-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background: white;
         }
 
-        .timeline-container {
-            position: relative;
-            height: 100%;
-            overflow-y: auto;
-            overflow-x: hidden;
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
         }
 
-        .timeline-content {
-            position: relative;
-            min-height: 100%;
-        }
-
-        .day-row {
-            display: flex;
-            align-items: center;
-            height: 30px;
-            padding: 0 16px;
-            border-bottom: 1px solid var(--color-border);
-            font-size: 12px;
-            color: rgba(19, 52, 59, 0.6);
+        .calendar-table th {
             background: rgba(252, 252, 249, 1);
+            border: 1px solid var(--color-border);
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            height: 40px;
         }
 
-        .day-label {
-            min-width: 60px;
-            font-weight: 500;
+        .calendar-table th.date-header {
+            padding: 2px;
         }
 
-        .event-block {
-            position: absolute;
-            left: 16px;
-            right: 16px;
-            padding: 6px 8px;
-            border-radius: 4px;
+        .calendar-table th.date-number {
+            font-size: 13px;
+            font-weight: 600;
+            height: 25px;
+            padding: 2px 0;
+        }
+
+        .calendar-table th.day-of-week {
             font-size: 11px;
             font-weight: 500;
+            height: 20px;
+            padding: 1px 0;
+            color: rgba(19, 52, 59, 0.6);
+        }
+
+        .calendar-table td {
+            border: 1px solid var(--color-border);
+            padding: 4px;
+            height: 30px;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .event-name-cell {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 10px 12px;
+            background: rgba(252, 252, 249, 1);
+            min-width: 180px;
+            border-right: 2px solid var(--color-border);
+        }
+
+        .event-bar {
+            position: absolute;
+            height: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 3px;
+            font-size: 9px;
             color: white;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .event-block:hover {
-            transform: translateX(-2px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        .event-bar:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            transform: translateY(calc(-50% - 2px));
         }
 
-        .event-block.rotation {
-            background: rgba(33, 128, 141, 1);
+        .event-bar.rotation {
+            background: rgba(33, 128, 141, 0.9);
         }
 
-        .event-block.svs {
-            background: rgba(230, 129, 97, 1);
+        .event-bar.svs {
+            background: rgba(230, 129, 97, 0.9);
         }
 
-        .event-block.other {
-            background: rgba(147, 51, 234, 1);
+        .event-bar.other {
+            background: rgba(147, 51, 234, 0.9);
         }
 
-        .current-time-indicator {
+        .today-marker {
+            background: rgba(33, 128, 141, 0.15) !important;
+            position: relative;
+        }
+
+        .today-marker::after {
+            content: '';
             position: absolute;
             left: 0;
+            top: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-            z-index: 10;
-            box-shadow: 0 0 8px rgba(33, 128, 141, 0.5);
-        }
-
-        .current-time-label {
-            position: absolute;
-            left: 0;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--color-primary);
-            padding: 2px 8px;
-            background: rgba(33, 128, 141, 0.1);
-            border-radius: 2px;
-            white-space: nowrap;
+            background: var(--color-primary);
         }
 
         .info-box {
@@ -181,55 +199,23 @@
             font-size: 12px;
         }
 
-        .info-box h3 {
-            margin: 0 0 8px 0;
-            font-size: 13px;
-        }
-
-        .info-box p {
-            margin: 4px 0;
-        }
-
         .legend {
             display: flex;
-            gap: 16px;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(33, 128, 141, 0.2);
+            gap: 24px;
+            flex-wrap: wrap;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 11px;
+            gap: 8px;
+            font-size: 12px;
         }
 
         .legend-color {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
             border-radius: 2px;
-        }
-
-        .timezone-selector {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .timezone-selector label {
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .timezone-selector select {
-            padding: 6px 10px;
-            border: 1px solid var(--color-border);
-            border-radius: 4px;
-            font-size: 12px;
-            background: white;
-            cursor: pointer;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -238,31 +224,27 @@
                 color: rgba(245, 245, 245, 1);
             }
 
-            .scheduler-wrapper {
+            .calendar-wrapper {
                 background: rgba(38, 40, 40, 1);
                 border-color: rgba(119, 124, 124, 0.3);
             }
 
-            .events-panel {
+            .calendar-table th {
+                background: rgba(38, 40, 40, 1);
+                border-color: rgba(119, 124, 124, 0.3);
+            }
+
+            .calendar-table td {
+                border-color: rgba(119, 124, 124, 0.3);
+            }
+
+            .event-name-cell {
+                background: rgba(38, 40, 40, 1);
                 border-right-color: rgba(119, 124, 124, 0.3);
             }
 
-            .event-item {
-                border-bottom-color: rgba(119, 124, 124, 0.3);
-            }
-
-            .event-item:hover {
-                background: rgba(33, 128, 141, 0.15);
-            }
-
-            .event-item.active {
-                background: rgba(33, 128, 141, 0.2);
-            }
-
-            .day-row {
-                border-bottom-color: rgba(119, 124, 124, 0.3);
-                background: rgba(38, 40, 40, 1);
-                color: rgba(245, 245, 245, 0.6);
+            .today-marker {
+                background: rgba(33, 128, 141, 0.2) !important;
             }
 
             .info-box {
@@ -276,45 +258,48 @@
     <div class="container">
         <div class="header">
             <h1>Last Z Event Scheduler</h1>
-            <p>Weekly event rotation and SvS schedule • JST Timezone</p>
+            <p>Monthly calendar view • JST Timezone</p>
         </div>
 
-        <div class="timezone-selector">
-            <label for="timezone">Timezone:</label>
-            <select id="timezone">
-                <option value="JST">JST (Japan Standard Time)</option>
+        <div class="controls">
+            <label>Month:</label>
+            <select id="monthSelect">
+                <option value="0">January 2026</option>
+                <option value="1">February 2026</option>
+                <option value="2">March 2026</option>
+                <option value="3">April 2026</option>
+                <option value="4">May 2026</option>
+                <option value="5">June 2026</option>
+                <option value="6">July 2026</option>
+                <option value="7">August 2026</option>
+                <option value="8">September 2026</option>
+                <option value="9">October 2026</option>
+                <option value="10">November 2026</option>
+                <option value="11">December 2026</option>
             </select>
+            <button onclick="goToToday()">Today</button>
         </div>
 
-        <div class="scheduler-wrapper">
-            <div class="events-panel" id="eventsList"></div>
-            <div class="schedule-wrapper">
-                <div class="timeline-container" id="timeline">
-                    <div class="timeline-content" id="timelineContent">
-                        <div class="current-time-indicator" id="currentIndicator"></div>
-                        <div class="current-time-label" id="currentLabel"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="month-title" id="monthTitle"></div>
+
+        <div class="calendar-wrapper">
+            <table class="calendar-table" id="calendarTable"></table>
         </div>
 
         <div class="info-box">
-            <h3>Schedule Information</h3>
-            <p><strong>Rotation Events:</strong> 4 events that cycle weekly</p>
-            <p><strong>SvS Raids:</strong> Semi-finals (Weeks 1-2) and Finals (Weeks 3-4)</p>
-            <p><strong>Capital Battles:</strong> Biweekly on specific dates</p>
+            <h3>Legend</h3>
             <div class="legend">
                 <div class="legend-item">
-                    <div class="legend-color" style="background: rgba(33, 128, 141, 1);"></div>
-                    <span>Rotation Events</span>
+                    <div class="legend-color" style="background: rgba(33, 128, 141, 0.9);"></div>
+                    <span>Rotation Events (4-week cycle)</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: rgba(230, 129, 97, 1);"></div>
+                    <div class="legend-color" style="background: rgba(230, 129, 97, 0.9);"></div>
                     <span>SvS Events</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: rgba(147, 51, 234, 1);"></div>
-                    <span>Other Events</span>
+                    <div class="legend-color" style="background: rgba(147, 51, 234, 0.9);"></div>
+                    <span>Capital Battles (14-day cycle)</span>
                 </div>
             </div>
         </div>
@@ -322,7 +307,6 @@
 
     <script>
         const events = [
-            // Weekly rotation (4-week cycle)
             {
                 name: '幸福自選宝庫',
                 type: 'rotation',
@@ -330,8 +314,7 @@
                 startTime: '11:00',
                 endDate: '2026-01-23',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'week1'
+                cycle: 28
             },
             {
                 name: 'ラッキー抽選',
@@ -340,8 +323,7 @@
                 startTime: '11:00',
                 endDate: '2026-01-30',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'week2'
+                cycle: 28
             },
             {
                 name: '弾丸のやつ',
@@ -350,8 +332,7 @@
                 startTime: '11:00',
                 endDate: '2026-02-06',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'week3'
+                cycle: 28
             },
             {
                 name: 'ラッキー商店',
@@ -360,10 +341,8 @@
                 startTime: '11:00',
                 endDate: '2026-02-13',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'week4'
+                cycle: 28
             },
-            // Biweekly (14-day cycle)
             {
                 name: '284内部首都戦',
                 type: 'other',
@@ -371,10 +350,8 @@
                 startTime: '23:00',
                 endDate: '2026-01-24',
                 endTime: '03:00',
-                cycle: 14,
-                cycleName: 'capital'
+                cycle: 14
             },
-            // Monthly SvS Semi-finals (28-day cycle)
             {
                 name: 'SvS侵略権争い（準決勝）',
                 type: 'svs',
@@ -382,8 +359,7 @@
                 startTime: '11:00',
                 endDate: '2026-01-17',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'svs-semi-raid'
+                cycle: 28
             },
             {
                 name: 'SvS本戦（準決勝）',
@@ -392,10 +368,8 @@
                 startTime: '23:00',
                 endDate: '2026-01-18',
                 endTime: '03:00',
-                cycle: 28,
-                cycleName: 'svs-semi-battle'
+                cycle: 28
             },
-            // Monthly SvS Finals (28-day cycle, offset)
             {
                 name: 'SvS侵略権争い（決勝）',
                 type: 'svs',
@@ -403,8 +377,7 @@
                 startTime: '11:00',
                 endDate: '2026-01-24',
                 endTime: '10:59',
-                cycle: 28,
-                cycleName: 'svs-final-raid'
+                cycle: 28
             },
             {
                 name: 'SvS本戦（決勝）',
@@ -413,13 +386,9 @@
                 startTime: '23:00',
                 endDate: '2026-01-25',
                 endTime: '03:00',
-                cycle: 28,
-                cycleName: 'svs-final-battle'
+                cycle: 28
             }
         ];
-
-        const dayHeight = 30;
-        const pixelsPerHour = dayHeight / 24;
 
         function parseDateTime(dateStr, timeStr) {
             const [year, month, day] = dateStr.split('-').map(Number);
@@ -449,122 +418,121 @@
             return occurrences;
         }
 
-        function renderScheduler() {
-            const now = new Date();
-            const scheduleStart = new Date(now);
-            scheduleStart.setDate(scheduleStart.getDate() - 7);
-            const scheduleEnd = new Date(now);
-            scheduleEnd.setDate(scheduleEnd.getDate() + 90);
+        function renderCalendar(month) {
+            const year = 2026;
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+
+            const monthStart = new Date(year, month, 1);
+            monthStart.setDate(monthStart.getDate() - 90);
+            const monthEnd = new Date(year, month, daysInMonth);
+            monthEnd.setDate(monthEnd.getDate() + 90);
 
             const allOccurrences = [];
             events.forEach(event => {
-                allOccurrences.push(...generateOccurrences(event, scheduleStart, scheduleEnd));
+                allOccurrences.push(...generateOccurrences(event, monthStart, monthEnd));
             });
 
-            allOccurrences.sort((a, b) => a.actualStart - b.actualStart);
+            // Create table header
+            const table = document.getElementById('calendarTable');
+            table.innerHTML = '';
 
-            // Render events list
-            const eventsList = document.getElementById('eventsList');
-            const uniqueEvents = [...new Set(events.map(e => e.name))];
-            eventsList.innerHTML = uniqueEvents.map(name => 
-                `<div class="event-item">${name}</div>`
-            ).join('');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                             'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('monthTitle').textContent = `${monthNames[month]} ${year}`;
 
-            // Render timeline
-            const timelineContent = document.getElementById('timelineContent');
-            const content = document.createElement('div');
-            content.style.position = 'relative';
-            content.style.minHeight = '100%';
+            // Date header row (1-31)
+            const dateHeaderRow = document.createElement('tr');
+            const emptyCell = document.createElement('th');
+            emptyCell.className = 'event-name-cell';
+            dateHeaderRow.appendChild(emptyCell);
 
-            let currentDate = new Date(scheduleStart);
-            currentDate.setHours(0, 0, 0, 0);
-            let offset = 0;
-
-            while (currentDate <= scheduleEnd) {
-                const dayRow = document.createElement('div');
-                dayRow.className = 'day-row';
-                dayRow.style.top = (offset * dayHeight) + 'px';
-                const dateStr = currentDate.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' });
-                const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                dayRow.innerHTML = `<div class="day-label">${dateStr} ${dayName}</div>`;
-                content.appendChild(dayRow);
-
-                // Add events for this day
-                allOccurrences.forEach(occ => {
-                    if (occ.actualStart.toDateString() === currentDate.toDateString() ||
-                        (occ.actualStart < currentDate && occ.actualEnd > currentDate)) {
-                        
-                        const startOffset = occ.actualStart.toDateString() === currentDate.toDateString()
-                            ? occ.actualStart.getHours() + occ.actualStart.getMinutes() / 60
-                            : 0;
-                        
-                        const endDate = new Date(currentDate);
-                        endDate.setDate(endDate.getDate() + 1);
-                        
-                        const endOffset = occ.actualEnd <= endDate
-                            ? occ.actualEnd.getHours() + occ.actualEnd.getMinutes() / 60
-                            : 24;
-                        
-                        const height = (endOffset - startOffset) * pixelsPerHour;
-                        
-                        if (height > 0) {
-                            const block = document.createElement('div');
-                            block.className = `event-block ${occ.type}`;
-                            block.textContent = occ.name;
-                            block.style.top = (offset * dayHeight + startOffset * pixelsPerHour) + 'px';
-                            block.style.height = height + 'px';
-                            block.title = `${occ.name} - ${occ.actualStart.toLocaleString('ja-JP')}`;
-                            content.appendChild(block);
-                        }
-                    }
-                });
-
-                currentDate.setDate(currentDate.getDate() + 1);
-                offset++;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const th = document.createElement('th');
+                th.className = 'date-header date-number';
+                th.textContent = day;
+                dateHeaderRow.appendChild(th);
             }
+            table.appendChild(dateHeaderRow);
 
-            // Update current time indicator
-            const nowOffset = (now.getHours() + now.getMinutes() / 60) * pixelsPerHour;
-            const daysOffset = Math.floor((now - scheduleStart) / (24 * 60 * 60 * 1000));
-            const indicatorTop = daysOffset * dayHeight + nowOffset;
+            // Day of week header row
+            const dayOfWeekRow = document.createElement('tr');
+            const emptyCell2 = document.createElement('th');
+            emptyCell2.className = 'event-name-cell';
+            dayOfWeekRow.appendChild(emptyCell2);
 
-            const indicator = document.getElementById('currentIndicator');
-            indicator.style.top = indicatorTop + 'px';
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(year, month, day);
+                const dayOfWeek = dateObj.getDay();
+                const th = document.createElement('th');
+                th.className = 'date-header day-of-week';
+                th.textContent = dayNames[dayOfWeek];
+                dayOfWeekRow.appendChild(th);
+            }
+            table.appendChild(dayOfWeekRow);
 
-            const label = document.getElementById('currentLabel');
-            label.style.top = indicatorTop + 'px';
-            label.textContent = 'NOW: ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            // Unique events sorted
+            const uniqueEvents = [...new Set(events.map(e => e.name))];
 
-            timelineContent.innerHTML = '';
-            timelineContent.appendChild(indicator);
-            timelineContent.appendChild(label);
-            timelineContent.appendChild(content);
+            // Create rows for each event
+            uniqueEvents.forEach(eventName => {
+                const row = document.createElement('tr');
+                
+                // Event name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'event-name-cell';
+                nameCell.textContent = eventName;
+                row.appendChild(nameCell);
 
-            // Scroll to current time
-            const timeline = document.getElementById('timeline');
-            timeline.scrollTop = Math.max(0, indicatorTop - 100);
+                // Day cells
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const cell = document.createElement('td');
+                    const dateObj = new Date(year, month, day);
+                    
+                    // Check if today
+                    const today = new Date();
+                    if (dateObj.toDateString() === today.toDateString()) {
+                        cell.classList.add('today-marker');
+                    }
+
+                    // Find events for this date and event name
+                    const dayEvents = allOccurrences.filter(occ => {
+                        return occ.name === eventName &&
+                               occ.actualStart.getDate() === day &&
+                               occ.actualStart.getMonth() === month &&
+                               occ.actualStart.getFullYear() === year;
+                    });
+
+                    if (dayEvents.length > 0) {
+                        const event = dayEvents[0];
+                        const bar = document.createElement('div');
+                        bar.className = `event-bar ${event.type}`;
+                        bar.title = `${event.name}\n${event.actualStart.toLocaleString('ja-JP')}`;
+                        bar.textContent = '';
+                        cell.appendChild(bar);
+                    }
+
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            });
         }
 
-        // Initial render
-        renderScheduler();
+        function goToToday() {
+            const today = new Date();
+            document.getElementById('monthSelect').value = today.getMonth();
+            renderCalendar(today.getMonth());
+        }
 
-        // Update current time indicator every minute
-        setInterval(() => {
-            const now = new Date();
-            const scheduleStart = new Date(now);
-            scheduleStart.setDate(scheduleStart.getDate() - 7);
-            
-            const daysOffset = Math.floor((now - scheduleStart) / (24 * 60 * 60 * 1000));
-            const nowOffset = (now.getHours() + now.getMinutes() / 60) * pixelsPerHour;
-            const indicatorTop = daysOffset * dayHeight + nowOffset;
+        // Event listeners
+        document.getElementById('monthSelect').addEventListener('change', (e) => {
+            renderCalendar(parseInt(e.target.value));
+        });
 
-            const indicator = document.getElementById('currentIndicator');
-            indicator.style.top = indicatorTop + 'px';
-
-            const label = document.getElementById('currentLabel');
-            label.style.top = indicatorTop + 'px';
-            label.textContent = 'NOW: ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-        }, 60000);
+        // Initial render (January)
+        goToToday();
     </script>
 </body>
 </html>
