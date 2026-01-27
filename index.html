@@ -236,4 +236,395 @@
             position: absolute;
             bottom: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-5
+            transform: translateX(-50%) translateY(-5px);
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: pre;
+            text-align: center;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+        }
+        
+        .event-bar:hover .tooltip {
+            visibility: visible;
+        }
+
+        /* Timeline Indicator */
+        #timeline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--timeline-color);
+            box-shadow: 0 0 8px var(--timeline-color);
+            z-index: 100;
+            pointer-events: none;
+            display: none;
+        }
+        
+        #timeline::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -3px;
+            width: 7px;
+            height: 7px;
+            background: var(--timeline-color);
+            border-radius: 50%;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sticky-col { width: 100px; min-width: 100px; }
+            .event-name { font-size: 10px; }
+            .date-cell, .day-cell { width: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <div class="title-block">
+            <h1>Last Z Scheduler</h1>
+            <p id="rangeDisplay">Loading...</p>
+        </div>
+        <div class="controls">
+            <select id="startMonthSelect"></select>
+            <button onclick="goToNow()">Now</button>
+        </div>
+    </div>
+
+    <div class="viewport" id="viewport">
+        <!-- Timeline injected here -->
+        <div id="timeline"></div>
+        <table id="calendarTable">
+            <thead id="calendarHeader"></thead>
+            <tbody id="calendarBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // --- Data ---
+        const groups = [
+            {
+                title: '週次イベント',
+                events: [
+                    { name: '幸福自選宝庫', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+                    { name: 'ラッキー抽選', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+                    { name: '弾丸のやつ', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+                    { name: 'ラッキー商店', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
+                ]
+            },
+            {
+                title: 'SvS（準決勝）',
+                events: [
+                    { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
+                    { name: 'SvS本戦', color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
+                ]
+            },
+            {
+                title: 'SvS（決勝）',
+                events: [
+                    { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #89f7fe, #66a6ff)', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
+                    { name: 'SvS本戦', color: 'linear-gradient(90deg, #cd9cf2, #f6f3ff)', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
+                ]
+            }
+        ];
+
+        // --- Logic ---
+        function parseDate(dStr, tStr) {
+            const [y, m, d] = dStr.split('-').map(Number);
+            const [hr, min] = tStr.split(':').map(Number);
+            return new Date(y, m-1, d, hr, min);
+        }
+
+        function getOccurrences(evt, startBound, endBound) {
+            const occs = [];
+            const eStart = parseDate(evt.startDate, evt.startTime);
+            const dur = parseDate(evt.endDate, evt.endTime) - eStart;
+            const cycleMs = evt.cycle * 86400000;
+            
+            let curr = new Date(eStart);
+            while (curr.getTime() + dur < startBound.getTime()) {
+                curr = new Date(curr.getTime() + cycleMs);
+            }
+            while (curr < endBound) {
+                const end = new Date(curr.getTime() + dur);
+                if (end > startBound) {
+                    occs.push({ ...evt, start: new Date(curr), end: end });
+                }
+                curr = new Date(curr.getTime() + cycleMs);
+            }
+            return occs;
+        }
+
+        // --- Render ---
+        const startMonthSelect = document.getElementById('startMonthSelect');
+        // Populate (2026 full year)
+        for (let i = 0; i < 12; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = new Date(2026, i, 1).toLocaleString('en', {month:'short', year:'numeric'});
+            startMonthSelect.appendChild(opt);
+        }
+
+        function render(startMonthIdx) {
+            const year = 2026;
+            // Render 3 months
+            const monthsToRender = 3;
+            const monthConfigs = [];
+            let totalDays = 0;
+
+            for (let i = 0; i < monthsToRender; i++) {
+                let m = startMonthIdx + i;
+                let y = year;
+                if (m > 11) { m -= 12; y++; }
+                
+                const days = new Date(y, m+1, 0).getDate();
+                monthConfigs.push({ year: y, month: m, days: days, startDayOffset: totalDays });
+                totalDays += days;
+            }
+
+            const viewStart = new Date(monthConfigs[0].year, monthConfigs[0].month, 1);
+            const lastM = monthConfigs[monthConfigs.length-1];
+            const viewEnd = new Date(lastM.year, lastM.month, lastM.days, 23, 59);
+
+            document.getElementById('rangeDisplay').textContent = 
+                `${viewStart.toLocaleString('en',{month:'short'})} - ${viewEnd.toLocaleString('en',{month:'short', year:'numeric'})}`;
+
+            const thead = document.getElementById('calendarHeader');
+            const tbody = document.getElementById('calendarBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // 1. Month Header Row
+            const rowM = document.createElement('tr');
+            const corner = document.createElement('th');
+            corner.className = 'sticky-col header';
+            corner.textContent = 'EVENT';
+            corner.rowSpan = 3; // Corner spans all 3 header rows
+            rowM.appendChild(corner);
+
+            monthConfigs.forEach(cfg => {
+                const th = document.createElement('th');
+                th.className = 'month-header-cell';
+                th.colSpan = cfg.days;
+                th.textContent = new Date(cfg.year, cfg.month).toLocaleString('en', {month:'long'});
+                rowM.appendChild(th);
+            });
+            thead.appendChild(rowM);
+
+            // 2. Date Row
+            const rowD = document.createElement('tr');
+            monthConfigs.forEach(cfg => {
+                for(let d=1; d<=cfg.days; d++) {
+                    const th = document.createElement('th');
+                    th.className = 'date-cell';
+                    // Highlight today
+                    // Simple check (assuming 2026 context or current)
+                    // For demo visual, let's just render numbers
+                    th.textContent = d;
+                    rowD.appendChild(th);
+                }
+            });
+            thead.appendChild(rowD);
+
+            // 3. Weekday Row
+            const rowW = document.createElement('tr');
+            const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+            monthConfigs.forEach(cfg => {
+                for(let d=1; d<=cfg.days; d++) {
+                    const date = new Date(cfg.year, cfg.month, d);
+                    const th = document.createElement('th');
+                    th.className = 'day-cell';
+                    th.textContent = daysShort[date.getDay()];
+                    if (date.getDay() === 0 || date.getDay() === 6) th.style.color = '#666'; // Dim weekends
+                    rowW.appendChild(th);
+                }
+            });
+            thead.appendChild(rowW);
+
+            // 4. Body Rows
+            groups.forEach(grp => {
+                // Group Title
+                const rowG = document.createElement('tr');
+                rowG.className = 'group-row';
+                const tdG = document.createElement('td');
+                tdG.className = 'sticky-col';
+                tdG.textContent = grp.title;
+                // Since this is a td in sticky col, it aligns with event names
+                // But we want it to span the whole row visually? 
+                // Actually sticking strictly to the left col is cleaner for the grid.
+                rowG.appendChild(tdG);
+                
+                // Filler cells for group row (darkened)
+                // Just one big cell spanning or individual? Individual to keep alignment correct
+                const fillTd = document.createElement('td');
+                fillTd.colSpan = totalDays;
+                fillTd.style.background = '#111';
+                fillTd.style.borderBottom = '1px solid #333';
+                rowG.appendChild(fillTd);
+                tbody.appendChild(rowG);
+
+                grp.events.forEach(evt => {
+                    const row = document.createElement('tr');
+                    row.className = 'event-row';
+                    
+                    // Name
+                    const nameTd = document.createElement('td');
+                    nameTd.className = 'sticky-col';
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'event-name';
+                    nameDiv.textContent = evt.name;
+                    nameTd.appendChild(nameDiv);
+                    row.appendChild(nameTd);
+
+                    // Grid Cells container - actually we just append one big cell per month?
+                    // No, for column alignment we need individual cells.
+                    // To optimize DOM, we render individual cells.
+                    
+                    // Pre-calc occurrences
+                    const occs = getOccurrences(evt, viewStart, viewEnd);
+
+                    // Render cells
+                    let globalDayIdx = 0;
+                    const dayCells = []; // Keep ref to append bars
+                    
+                    monthConfigs.forEach(cfg => {
+                        for(let d=1; d<=cfg.days; d++) {
+                            const td = document.createElement('td');
+                            td.className = 'grid-cell';
+                            row.appendChild(td);
+                            dayCells.push({ td, date: new Date(cfg.year, cfg.month, d) });
+                            globalDayIdx++;
+                        }
+                    });
+                    
+                    tbody.appendChild(row);
+
+                    // Place Bars
+                    // Since cells are in a flat array `dayCells`, we map dates to indices.
+                    // This is robust.
+                    
+                    occs.forEach(occ => {
+                        // Find start index
+                        // Simple difference in days from viewStart
+                        const diffTime = occ.start.getTime() - viewStart.getTime();
+                        const startDayIdx = Math.floor(diffTime / (1000 * 3600 * 24));
+                        
+                        // If startDayIdx < 0, it means it started before view, but overlaps.
+                        // We clamp start.
+                        
+                        let renderStartIdx = startDayIdx;
+                        let renderStartTime = occ.start;
+                        if (renderStartIdx < 0) {
+                            renderStartIdx = 0;
+                            renderStartTime = viewStart; // Visual start
+                        }
+
+                        if (renderStartIdx >= dayCells.length) return; // Starts after view
+
+                        // Calculate width
+                        const durMs = occ.end - renderStartTime;
+                        const widthPct = (durMs / 86400000) * 100; // 100% = 1 cell width
+                        
+                        // Calculate left offset within the start cell
+                        let leftPct = 0;
+                        if (renderStartIdx === startDayIdx) { // Only if actual start
+                           const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
+                           leftPct = (mins / 1440) * 100;
+                        }
+
+                        // Append to the specific cell
+                        const cell = dayCells[renderStartIdx].td;
+                        
+                        const bar = document.createElement('div');
+                        bar.className = 'event-bar';
+                        bar.style.background = occ.color;
+                        bar.style.left = `${leftPct}%`;
+                        // Width relative to CELL.
+                        // Since `overflow: visible` is default on TD? No, usually hidden or static.
+                        // We need `overflow: visible` on TD and absolute bar.
+                        // However, standard tables clip.
+                        // Trick: Append to the first cell, allow width to span multiple cells.
+                        // Ensure TD has overflow visible.
+                        
+                        // Standard table cells don't support overflow: visible well for content spanning others easily without layout issues.
+                        // But with fixed layout and simple divs, it works if z-index is managed.
+                        
+                        bar.style.width = `calc(${widthPct}% - 1px)`; // -1px for gap
+                        
+                        // Tooltip
+                        const tt = document.createElement('div');
+                        tt.className = 'tooltip';
+                        tt.innerHTML = `<b>${occ.name}</b><br>${occ.start.toLocaleString('ja-JP')} ~ <br>${occ.end.toLocaleString('ja-JP')}`;
+                        bar.appendChild(tt);
+                        
+                        // Ensure cell allows spillover
+                        cell.style.overflow = 'visible';
+                        cell.appendChild(bar);
+                    });
+                });
+            });
+
+            updateTimeline(viewStart, totalDays);
+        }
+
+        function updateTimeline(viewStart, totalDays) {
+            const now = new Date(); // Real time
+            // For demo: assume we are in 2026 if user selected it, else real time.
+            // Timeline only shows if 'now' is within view.
+            
+            const diff = now - viewStart;
+            if (diff >= 0) {
+                const diffDays = diff / (1000 * 3600 * 24);
+                if (diffDays <= totalDays) {
+                    const tl = document.getElementById('timeline');
+                    tl.style.display = 'block';
+                    
+                    // We need to map days to pixels.
+                    // 1 day = 28px (width of date-cell)
+                    // + 140px sticky col
+                    const colWidth = 28;
+                    const stickyWidth = 140;
+                    
+                    const leftPos = stickyWidth + (diffDays * colWidth);
+                    tl.style.left = `${leftPos}px`;
+                }
+            }
+        }
+
+        function goToNow() {
+            const now = new Date();
+            startMonthSelect.value = now.getMonth();
+            render(now.getMonth());
+            
+            setTimeout(() => {
+                const tl = document.getElementById('timeline');
+                if (tl.style.display !== 'none') {
+                   const scroll = parseInt(tl.style.left) - (window.innerWidth / 2);
+                   document.getElementById('viewport').scrollTo({left: scroll, behavior: 'smooth'});
+                }
+            }, 100);
+        }
+
+        startMonthSelect.addEventListener('change', (e) => render(parseInt(e.target.value)));
+        
+        // Init
+        goToNow();
+        
+        // Auto update timeline
+        setInterval(() => {
+            if (document.getElementById('timeline').style.display !== 'none') {
+                // simple re-render or just recalc pos?
+                // Just trigger button logic for simplicity if needed, or static for now.
+            }
+        }, 60000);
+
+    </script>
+</body>
+</html>
