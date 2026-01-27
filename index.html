@@ -14,16 +14,12 @@
             --color-text-secondary: #cbd5e1;
             --color-primary: #06b6d4;
             --color-primary-dark: #0891b2;
-            --color-accent-rotation: #0891b2;
-            --color-accent-svs: #f97316;
-            --color-accent-other: #a855f7;
             --color-border: rgba(148, 163, 184, 0.1);
-            --color-hover: rgba(6, 182, 212, 0.1);
+            --color-hover: rgba(6, 182, 212, 0.05);
+            --timeline-color: #f43f5e; /* Bright red/pink for visibility */
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         html, body {
             margin: 0;
@@ -47,21 +43,12 @@
 
         .header h1 {
             margin: 0 0 12px 0;
-            font-size: 42px;
+            font-size: 32px;
             font-weight: 700;
             background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -1px;
-        }
-
-        .header p {
-            margin: 0;
-            color: var(--color-text-secondary);
-            font-size: 16px;
-            font-weight: 300;
-            letter-spacing: 0.5px;
         }
 
         .controls {
@@ -69,59 +56,24 @@
             gap: 16px;
             margin-bottom: 32px;
             align-items: center;
-            flex-wrap: wrap;
             justify-content: center;
         }
 
-        .controls label {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--color-text-secondary);
-        }
-
-        .controls select {
+        .controls select, .controls button {
             padding: 10px 16px;
             border: 1px solid var(--color-border);
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
             background: var(--color-bg-secondary);
             color: var(--color-text-primary);
             cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .controls select:hover {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
         }
 
         .controls button {
-            padding: 10px 24px;
+            background: var(--color-primary);
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
             color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
-        }
-
-        .controls button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4);
-        }
-
-        .month-title {
-            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 24px;
-            color: var(--color-text-primary);
-            text-align: center;
-            letter-spacing: -0.5px;
         }
 
         .calendar-wrapper {
@@ -132,7 +84,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
             overflow-x: auto;
-            scroll-behavior: smooth;
+            position: relative; /* For absolute timeline positioning */
         }
 
         .calendar-table {
@@ -140,36 +92,45 @@
             border-collapse: separate;
             border-spacing: 0;
             min-width: 1400px;
-            table-layout: fixed; /* Important for spanning calculations */
+            table-layout: fixed;
         }
 
         .calendar-table th {
             background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(8, 145, 178, 0.05) 100%);
             border-bottom: 1px solid var(--color-border);
-            padding: 16px 8px;
+            padding: 12px 4px;
             text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--color-text-secondary);
+            width: 45px;
+            position: relative;
+        }
+
+        /* Group Header Styling */
+        .group-header-row td {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 12px 20px;
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 14px;
+            border-bottom: 1px solid var(--color-border);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            width: 40px; /* Base width for day columns */
+            letter-spacing: 1px;
         }
 
         .calendar-table th.event-name-cell {
             padding: 16px 20px;
             text-align: left;
-            width: 220px; /* Fixed width for name column */
-            min-width: 220px;
-            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+            width: 240px;
+            min-width: 240px;
+            background: var(--color-bg-secondary);
             z-index: 20;
             position: sticky;
             left: 0;
             border-right: 1px solid var(--color-border);
+            box-shadow: 4px 0 12px rgba(0,0,0,0.1);
         }
 
         .calendar-table th.date-number {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--color-primary);
         }
@@ -178,18 +139,16 @@
             font-size: 11px;
             font-weight: 500;
             color: var(--color-text-secondary);
-            padding-top: 4px;
         }
 
         .calendar-table td {
             border-right: 1px solid var(--color-border);
             border-bottom: 1px solid var(--color-border);
-            height: 60px;
+            height: 48px; /* Slightly thinner rows */
             position: relative;
             vertical-align: middle;
-            background: var(--color-bg-secondary);
             padding: 0;
-            overflow: visible; /* Allow bars to span */
+            overflow: visible;
         }
 
         .calendar-table td:hover {
@@ -201,180 +160,80 @@
             font-weight: 500;
             padding: 0 20px;
             border-right: 2px solid var(--color-border);
-            background: var(--color-bg-secondary); /* Solid bg for sticky */
+            background: var(--color-bg-secondary);
             position: sticky;
             left: 0;
             z-index: 15;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-        }
-
-        .event-name-cell::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 1px;
-            background: linear-gradient(to bottom, transparent, var(--color-primary), transparent);
-        }
-
-        .event-cell-content {
-            position: relative;
-            height: 100%;
-            width: 100%;
-            display: flex;
-            align-items: center;
+            color: var(--color-text-secondary);
         }
 
         .event-bar {
             position: absolute;
-            height: 32px;
+            height: 24px; /* Thinner bar */
             top: 50%;
             transform: translateY(-50%);
-            border-radius: 6px;
-            font-size: 11px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            letter-spacing: 0.3px;
             z-index: 10;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            /* No text inside */
         }
 
         .event-bar:hover {
-            transform: translateY(calc(-50% - 3px));
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.5);
-            z-index: 100; /* Bring to very front on hover */
-            overflow: visible; /* Show content if it was clipped */
+            transform: translateY(calc(-50% - 2px)) scaleY(1.1);
+            z-index: 100;
+            filter: brightness(1.2);
         }
 
-        /* Hover Tooltip */
+        /* Tooltip */
         .event-bar .tooltip {
             position: absolute;
             bottom: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-10px);
+            transform: translateX(-50%) translateY(-8px);
             background: rgba(15, 23, 42, 0.95);
-            color: #f1f5f9;
+            color: white;
             padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             white-space: pre;
             text-align: center;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity 0.2s;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
             width: max-content;
-            max-width: 300px;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
         .event-bar:hover .tooltip {
             opacity: 1;
-            transform: translateX(-50%) translateY(-5px);
         }
 
-        .event-bar.rotation {
-            background: linear-gradient(90deg, var(--color-accent-rotation) 0%, #06a3c4 100%);
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-        }
-
-        .event-bar.svs {
-            background: linear-gradient(90deg, var(--color-accent-svs) 0%, #ea580c 100%);
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
-
-        .event-bar.other {
-            background: linear-gradient(90deg, var(--color-accent-other) 0%, #9333ea 100%);
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
-        }
-
-        .today-marker {
-            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%) !important;
-        }
-
-        .today-marker::before {
-            content: '';
+        /* Timeline Indicator */
+        .timeline-indicator {
             position: absolute;
-            left: 0;
             top: 0;
-            right: 0;
-            height: 3px;
-            background: var(--color-primary);
-            z-index: 5;
-            box-shadow: 0 0 10px var(--color-primary);
+            bottom: 0;
+            width: 2px;
+            background: var(--timeline-color);
+            z-index: 50;
+            pointer-events: none;
+            box-shadow: 0 0 8px var(--timeline-color);
         }
 
-        .info-box {
-            margin-top: 40px;
-            padding: 32px;
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-border);
-            border-radius: 16px;
-            font-size: 14px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .legend {
-            display: flex;
-            gap: 32px;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 13px;
-            color: var(--color-text-secondary);
-            font-weight: 500;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --color-bg-primary: #f8fafc;
-                --color-bg-secondary: #ffffff;
-                --color-text-primary: #0f172a;
-                --color-text-secondary: #64748b;
-                --color-border: rgba(148, 163, 184, 0.2);
-                --color-hover: rgba(6, 182, 212, 0.05);
-            }
-
-            html, body {
-                background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-            }
-
-            .calendar-table th {
-                background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(8, 145, 178, 0.03) 100%);
-            }
-
-            .info-box {
-                background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-            }
-            
-            .event-name-cell {
-                 background: #ffffff;
-            }
+        .timeline-head {
+            position: absolute;
+            top: -6px;
+            left: -4px;
+            width: 10px;
+            height: 10px;
+            background: var(--timeline-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--timeline-color);
         }
     </style>
 </head>
@@ -382,86 +241,85 @@
     <div class="container">
         <div class="header">
             <h1>Last Z Event Scheduler</h1>
-            <p>Alliance Event Tracker • JST Timezone</p>
+            <p id="monthTitleDisplay">Loading...</p>
         </div>
 
         <div class="controls">
-            <label>Month:</label>
             <select id="monthSelect">
-                <option value="0">January 2026</option>
-                <option value="1">February 2026</option>
-                <option value="2">March 2026</option>
-                <option value="3">April 2026</option>
-                <option value="4">May 2026</option>
-                <option value="5">June 2026</option>
-                <option value="6">July 2026</option>
-                <option value="7">August 2026</option>
-                <option value="8">September 2026</option>
-                <option value="9">October 2026</option>
-                <option value="10">November 2026</option>
-                <option value="11">December 2026</option>
+                <!-- Javascript will populate -->
             </select>
             <button onclick="goToToday()">Today</button>
         </div>
 
-        <div class="month-title" id="monthTitle"></div>
-
-        <div class="calendar-wrapper">
-            <table class="calendar-table" id="calendarTable"></table>
-        </div>
-
-        <div class="info-box">
-            <h3>Event Categories</h3>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #0891b2 0%, #06a3c4 100%);"></div>
-                    <span>Rotation Events (4-week cycle)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);"></div>
-                    <span>SvS Raids & Battles</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);"></div>
-                    <span>Capital Battles (14-day cycle)</span>
-                </div>
+        <div class="calendar-wrapper" id="calendarWrapper">
+            <!-- Timeline Line -->
+            <div id="timeline" class="timeline-indicator" style="display: none;">
+                <div class="timeline-head"></div>
             </div>
+            
+            <table class="calendar-table" id="calendarTable"></table>
         </div>
     </div>
 
     <script>
-        const events = [
-            { name: '幸福自選宝庫', type: 'rotation', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
-            { name: 'ラッキー抽選', type: 'rotation', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
-            { name: '弾丸のやつ', type: 'rotation', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
-            { name: 'ラッキー商店', type: 'rotation', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 },
-            { name: '284内部首都戦', type: 'other', startDate: '2026-01-23', startTime: '23:00', endDate: '2026-01-24', endTime: '03:00', cycle: 14 },
-            { name: 'SvS侵略権争い（準決勝）', type: 'svs', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
-            { name: 'SvS本戦（準決勝）', type: 'svs', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 },
-            { name: 'SvS侵略権争い（決勝）', type: 'svs', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
-            { name: 'SvS本戦（決勝）', type: 'svs', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
+        // --- 1. Event Data with Unique Colors ---
+        // Each event has a specific hex color assigned manually for uniqueness.
+        const groups = [
+            {
+                id: 'weekly',
+                title: '週次イベント',
+                events: [
+                    { name: '幸福自選宝庫', color: '#0ea5e9', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+                    { name: 'ラッキー抽選', color: '#22d3ee', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+                    { name: '弾丸のやつ', color: '#2dd4bf', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+                    { name: 'ラッキー商店', color: '#34d399', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
+                ]
+            },
+            {
+                id: 'svs_semi',
+                title: 'SvS（準決勝）',
+                events: [
+                    { name: 'SvS侵略権争い', color: '#f59e0b', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
+                    { name: 'SvS本戦', color: '#ea580c', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
+                ]
+            },
+            {
+                id: 'svs_final',
+                title: 'SvS（決勝）',
+                events: [
+                    { name: 'SvS侵略権争い', color: '#a855f7', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
+                    { name: 'SvS本戦', color: '#d946ef', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
+                ]
+            }
         ];
 
+        // Flatten events for calculation logic
+        const allEventDefs = groups.flatMap(g => g.events);
+
+        // --- 2. Date Utilities ---
         function parseDateTime(dateStr, timeStr) {
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hour, minute] = timeStr.split(':').map(Number);
             return new Date(year, month - 1, day, hour, minute);
         }
 
-        function generateOccurrences(event, startDate, endDate) {
+        function generateOccurrences(event, rangeStart, rangeEnd) {
             const occurrences = [];
             const eventStart = parseDateTime(event.startDate, event.startTime);
             const eventEnd = parseDateTime(event.endDate, event.endTime);
+            const duration = eventEnd.getTime() - eventStart.getTime();
             const cycleDays = event.cycle;
 
             let current = new Date(eventStart);
 
-            while (current <= endDate) {
-                // If the cycle passes the end date, stop
-                const occEnd = new Date(current.getTime() + (eventEnd.getTime() - eventStart.getTime()));
-                
-                // Only add if it overlaps the requested window at all
-                if (occEnd >= startDate && current <= endDate) {
+            // Fast forward to near range
+            while (current.getTime() + duration < rangeStart.getTime()) {
+                current = new Date(current.getTime() + cycleDays * 24 * 60 * 60 * 1000);
+            }
+
+            while (current <= rangeEnd) {
+                const occEnd = new Date(current.getTime() + duration);
+                if (occEnd >= rangeStart && current <= rangeEnd) {
                     occurrences.push({
                         ...event,
                         actualStart: new Date(current),
@@ -473,162 +331,241 @@
             return occurrences;
         }
 
-        function renderCalendar(month) {
+        // --- 3. Calendar Rendering ---
+        const monthSelect = document.getElementById('monthSelect');
+        // Populate Select for 2026
+        for(let i=0; i<12; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = new Date(2026, i, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            monthSelect.appendChild(opt);
+        }
+
+        function renderCalendar(monthIndex) {
             const year = 2026;
-            const lastDay = new Date(year, month + 1, 0);
-            const daysInMonth = lastDay.getDate();
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const monthStart = new Date(year, monthIndex, 1);
+            const monthEnd = new Date(year, monthIndex, daysInMonth, 23, 59, 59);
 
-            // Visible range: Month Start to Month End
-            const monthStart = new Date(year, month, 1, 0, 0, 0);
-            const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59);
-
-            // Fetch occurrences for a wider range to catch overlaps
-            const fetchStart = new Date(monthStart);
-            fetchStart.setDate(fetchStart.getDate() - 30);
-            const fetchEnd = new Date(monthEnd);
-            fetchEnd.setDate(fetchEnd.getDate() + 30);
-
-            const allOccurrences = [];
-            events.forEach(event => {
-                allOccurrences.push(...generateOccurrences(event, fetchStart, fetchEnd));
-            });
+            document.getElementById('monthTitleDisplay').textContent = 
+                `${new Date(year, monthIndex).toLocaleString('en-US', { month: 'long' })} ${year}`;
 
             const table = document.getElementById('calendarTable');
             table.innerHTML = '';
 
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                             'July', 'August', 'September', 'October', 'November', 'December'];
-            document.getElementById('monthTitle').textContent = `${monthNames[month]} ${year}`;
+            // --- Header: Dates ---
+            const dateRow = document.createElement('tr');
+            const emptyCorner = document.createElement('th');
+            emptyCorner.className = 'event-name-cell';
+            emptyCorner.textContent = 'Event / Date';
+            dateRow.appendChild(emptyCorner);
 
-            // --- Header Rows ---
-            const dateHeaderRow = document.createElement('tr');
-            dateHeaderRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' }));
-            for (let day = 1; day <= daysInMonth; day++) {
+            for (let d = 1; d <= daysInMonth; d++) {
                 const th = document.createElement('th');
                 th.className = 'date-header date-number';
-                th.textContent = day;
-                dateHeaderRow.appendChild(th);
+                th.textContent = d;
+                dateRow.appendChild(th);
             }
-            table.appendChild(dateHeaderRow);
+            table.appendChild(dateRow);
 
-            const dayOfWeekRow = document.createElement('tr');
-            dayOfWeekRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' }));
-            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateObj = new Date(year, month, day);
+            // --- Header: Days of Week ---
+            const dayRow = document.createElement('tr');
+            dayRow.appendChild(Object.assign(document.createElement('th'), { className: 'event-name-cell' })); // spacer
+            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(year, monthIndex, d);
                 const th = document.createElement('th');
                 th.className = 'date-header day-of-week';
-                th.textContent = dayNames[dateObj.getDay()];
-                dayOfWeekRow.appendChild(th);
+                th.textContent = weekDays[dateObj.getDay()];
+                dayRow.appendChild(th);
             }
-            table.appendChild(dayOfWeekRow);
+            table.appendChild(dayRow);
 
-            // --- Event Rows ---
-            const uniqueEvents = [...new Set(events.map(e => e.name))];
+            // --- Render Groups ---
+            groups.forEach(group => {
+                // 1. Group Title Row
+                const groupRow = document.createElement('tr');
+                groupRow.className = 'group-header-row';
+                const titleCell = document.createElement('td');
+                titleCell.colSpan = daysInMonth + 1; // Span entire width
+                titleCell.textContent = group.title;
+                groupRow.appendChild(titleCell);
+                table.appendChild(groupRow);
 
-            uniqueEvents.forEach(eventName => {
-                const row = document.createElement('tr');
-                
-                // Name Cell
-                const nameCell = document.createElement('td');
-                nameCell.className = 'event-name-cell';
-                nameCell.textContent = eventName;
-                row.appendChild(nameCell);
+                // 2. Event Rows
+                group.events.forEach(eventDef => {
+                    const row = document.createElement('tr');
+                    
+                    // Event Name
+                    const nameCell = document.createElement('td');
+                    nameCell.className = 'event-name-cell';
+                    nameCell.textContent = eventDef.name;
+                    row.appendChild(nameCell);
 
-                // Create empty Day Cells first
-                const dayCells = [];
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const cell = document.createElement('td');
-                    const dateObj = new Date(year, month, day);
-                    const today = new Date();
-                    if (dateObj.toDateString() === today.toDateString()) {
-                        cell.classList.add('today-marker');
+                    // Day Cells Container
+                    const dayCells = [];
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const cell = document.createElement('td');
+                        row.appendChild(cell);
+                        dayCells.push(cell);
                     }
-                    row.appendChild(cell);
-                    dayCells.push(cell); // Store reference (index 0 = day 1)
-                }
-                table.appendChild(row);
+                    table.appendChild(row);
 
-                // --- Render Events as Long Bars ---
-                const eventOccurrences = allOccurrences.filter(occ => occ.name === eventName);
-
-                eventOccurrences.forEach(occ => {
-                    // Calculate intersection with current month
-                    const startInView = occ.actualStart < monthStart ? monthStart : occ.actualStart;
-                    const endInView = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
-
-                    if (startInView > endInView) return; // No overlap
-
-                    // Calculate Start Day Index (1-based)
-                    const startDayIndex = startInView.getDate();
+                    // Calculate and Draw Bars
+                    // Range extended for calculation to handle spanning
+                    const calcStart = new Date(monthStart); calcStart.setDate(calcStart.getDate()-30);
+                    const calcEnd = new Date(monthEnd); calcEnd.setDate(calcEnd.getDate()+30);
                     
-                    // Duration in MS
-                    const durationMs = endInView.getTime() - startInView.getTime();
-                    const totalDaysSpan = durationMs / (1000 * 60 * 60 * 24);
+                    const occs = generateOccurrences(eventDef, calcStart, calcEnd);
 
-                    // If event starts before month, we clamp visually but calculation is tricky
-                    // Easier method: Find start cell index.
-                    // If event starts previous month, start cell is index 0 (Day 1).
-                    // We need to calculate offset relative to Day 1 00:00.
-                    
-                    let targetCellIndex = 0;
-                    let leftOffsetPercent = 0;
-                    let widthPercent = 0;
+                    occs.forEach(occ => {
+                        // Only draw if overlap with THIS month
+                        if (occ.actualEnd < monthStart || occ.actualStart > monthEnd) return;
 
-                    // 1. Determine which cell acts as the anchor
-                    if (occ.actualStart < monthStart) {
-                        targetCellIndex = 0; // Anchor to Day 1
-                        // Calculate width from Day 1 00:00 to End
-                        const durationFromMonthStart = endInView.getTime() - monthStart.getTime();
-                        widthPercent = (durationFromMonthStart / (24 * 60 * 60 * 1000)) * 100;
-                    } else {
-                        targetCellIndex = occ.actualStart.getDate() - 1; // 0-based index
-                        // Calculate offset within the start day
-                        const startMins = occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes();
-                        leftOffsetPercent = (startMins / 1440) * 100;
+                        // Logic: Find start day index (0-based) relative to month start
+                        // If starts before month, index is 0.
+                        let startIndex = 0;
+                        let startOffsetPct = 0;
+
+                        if (occ.actualStart < monthStart) {
+                            startIndex = 0;
+                            startOffsetPct = 0;
+                        } else {
+                            startIndex = occ.actualStart.getDate() - 1;
+                            // Time offset
+                            const minutes = occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes();
+                            startOffsetPct = (minutes / 1440) * 100;
+                        }
+
+                        // Calculate Width
+                        // End time relative to month start vs Start time relative to month start
+                        const effectiveStart = occ.actualStart < monthStart ? monthStart : occ.actualStart;
+                        const effectiveEnd = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
                         
-                        // Width is total duration
-                        widthPercent = (durationMs / (24 * 60 * 60 * 1000)) * 100;
-                    }
+                        const durationMs = effectiveEnd - effectiveStart;
+                        const dayMs = 24 * 60 * 60 * 1000;
+                        const widthPct = (durationMs / dayMs) * 100;
 
-                    // Create the Bar
-                    const bar = document.createElement('div');
-                    bar.className = `event-bar ${occ.type}`;
-                    bar.textContent = occ.name;
-                    
-                    // Style for Long Span
-                    bar.style.left = `${leftOffsetPercent}%`;
-                    bar.style.width = `${widthPercent}%`;
-                    
-                    // Tooltip
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'tooltip';
-                    tooltip.innerHTML = `${occ.name}<br>${occ.actualStart.toLocaleString('ja-JP')} ~ <br>${occ.actualEnd.toLocaleString('ja-JP')}`;
-                    bar.appendChild(tooltip);
+                        // Draw
+                        if (dayCells[startIndex]) {
+                            const bar = document.createElement('div');
+                            bar.className = 'event-bar';
+                            bar.style.backgroundColor = occ.color;
+                            bar.style.left = `${startOffsetPct}%`;
+                            bar.style.width = `${widthPct}%`;
 
-                    // Append to the correct cell
-                    if (dayCells[targetCellIndex]) {
-                        // We need a wrapper inside the cell to handle absolute positioning relative to content flow if needed,
-                        // but here td is relative, so we append directly.
-                        // Note: If width exceeds cell, it spills over (visible overflow).
-                        dayCells[targetCellIndex].appendChild(bar);
-                    }
+                            // Tooltip content
+                            const tooltip = document.createElement('div');
+                            tooltip.className = 'tooltip';
+                            tooltip.innerHTML = `${occ.name}<br>${occ.actualStart.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})} ~ ${occ.actualEnd.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}`;
+                            bar.appendChild(tooltip);
+
+                            dayCells[startIndex].appendChild(bar);
+                        }
+                    });
                 });
             });
+
+            updateTimeline(monthIndex, year, daysInMonth);
+        }
+
+        // --- 4. Timeline Logic ---
+        function updateTimeline(monthIndex, year, daysInMonth) {
+            const now = new Date();
+            const timeline = document.getElementById('timeline');
+            
+            // Only show if current view is current month/year
+            if (now.getMonth() === monthIndex && now.getFullYear() === year) {
+                timeline.style.display = 'block';
+                
+                // Calculate position
+                // We need to account for the "Name Column" width (240px)
+                // And then find percentage across the remaining width
+                
+                const currentDay = now.getDate(); // 1-31
+                const currentMins = now.getHours() * 60 + now.getMinutes();
+                
+                // There are `daysInMonth` columns.
+                // Position = ( (Day-1) + (Mins/1440) ) / TotalDays
+                const dayProgress = (currentDay - 1) + (currentMins / 1440);
+                const totalProgress = dayProgress / daysInMonth;
+
+                // The timeline sits inside calendar-wrapper which is `relative`.
+                // But the table scrolls inside it. This is tricky with CSS sticky headers.
+                // Easier approach: Put timeline inside the table or calculate pixel offset.
+                // CSS Grid is best, but using Table here.
+                // Let's attach timeline to the wrapper and rely on simple percentages?
+                // No, because wrapper scrolls.
+                
+                // Correct approach for scrolling table:
+                // Timeline needs to be positioned absolute relative to the TABLE content (scrolling area), 
+                // but disregarding the sticky header? 
+                // Actually, let's just create a special absolute div inside the first row of table or similar.
+                
+                // Simplest robust way: 
+                // Calculate left offset: 240px (sticky col) + (totalWidth - 240px) * percentage?
+                // Since table layout is fixed, we can estimate. 
+                // Better: Use a dedicated container overlaid on the grid part.
+                
+                // For this implementation, let's inject the timeline into the TABLE itself, 
+                // perhaps as a absolute div in a row that spans everything?
+                
+                // Let's refine the CSS left calculation dynamically:
+                const nameColWidth = 240;
+                // We need the width of one day column.
+                // It varies.
+                
+                // RE-APPROACH: 
+                // Put timeline in the wrapper. 
+                // But update its 'left' based on the specific cell of "Today".
+                
+                setTimeout(() => {
+                    const table = document.getElementById('calendarTable');
+                    // Find header cell for today
+                    const headers = table.querySelectorAll('.date-number');
+                    if (headers.length >= currentDay) {
+                        const todayHeader = headers[currentDay - 1]; // 0-indexed
+                        
+                        // Get position relative to table
+                        const headerRect = todayHeader.getBoundingClientRect();
+                        const tableRect = table.getBoundingClientRect();
+                        
+                        // Calculate offset within the day (time)
+                        const dayWidth = headerRect.width;
+                        const timeOffset = (currentMins / 1440) * dayWidth;
+                        
+                        const relativeLeft = (headerRect.left - tableRect.left) + timeOffset;
+
+                        timeline.style.left = `${relativeLeft}px`;
+                        // Timeline height should match table height
+                        timeline.style.height = `${table.scrollHeight}px`;
+                        
+                        // Append to table so it scrolls with it
+                        table.appendChild(timeline);
+                    }
+                }, 100);
+
+            } else {
+                timeline.style.display = 'none';
+            }
         }
 
         function goToToday() {
-            const today = new Date();
-            document.getElementById('monthSelect').value = today.getMonth();
-            renderCalendar(today.getMonth());
+            const now = new Date();
+            monthSelect.value = now.getMonth();
+            renderCalendar(now.getMonth());
         }
 
-        document.getElementById('monthSelect').addEventListener('change', (e) => {
-            renderCalendar(parseInt(e.target.value));
-        });
-
         // Init
+        monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
         goToToday();
+        
+        // Update timeline every minute
+        setInterval(() => {
+            const m = parseInt(monthSelect.value);
+            renderCalendar(m); 
+        }, 60000);
+
     </script>
 </body>
 </html>
