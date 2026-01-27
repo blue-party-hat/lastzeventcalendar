@@ -1,22 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Last Z Event Scheduler</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
         :root {
-            /* Pure Black Theme */
             --bg-body: #000000;
             --bg-panel: #0a0a0a;
             --bg-header: #111111;
             --border-color: #333333;
             --text-primary: #ffffff;
             --text-secondary: #888888;
-            --accent-color: #00e5ff; /* Cyan accent */
-            --timeline-color: #ff0055; /* Neon Red */
+            --accent-color: #00e5ff;
+            --timeline-color: #ff0055;
         }
 
         * { box-sizing: border-box; }
@@ -24,7 +23,7 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-primary);
             height: 100vh;
@@ -34,27 +33,26 @@
         }
 
         .header-container {
-            padding: 16px 20px;
+            padding: 12px 20px;
             background: var(--bg-body);
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border-color);
             z-index: 50;
+            height: 60px;
         }
 
         .title-block h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            background: linear-gradient(90deg, #fff, #888);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff;
         }
 
         .title-block p {
-            margin: 4px 0 0;
-            font-size: 12px;
+            margin: 2px 0 0;
+            font-size: 11px;
             color: var(--text-secondary);
         }
 
@@ -71,16 +69,16 @@
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
+            font-family: 'Noto Sans JP', sans-serif;
         }
         
         button {
             background: var(--accent-color);
             color: black;
-            font-weight: 600;
+            font-weight: 700;
             border: none;
         }
 
-        /* --- Main Scroll Area --- */
         .viewport {
             flex-grow: 1;
             overflow: auto;
@@ -98,10 +96,8 @@
             border-right: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
             padding: 0;
-            box-sizing: border-box;
         }
 
-        /* Sticky Headers */
         thead {
             position: sticky;
             top: 0;
@@ -109,20 +105,19 @@
             background: var(--bg-header);
         }
 
-        /* Left Column (Sticky) */
         .sticky-col {
             position: sticky;
             left: 0;
             width: 140px;
             min-width: 140px;
             max-width: 140px;
-            z-index: 45; /* Above normal cells */
+            z-index: 45;
             background: var(--bg-panel);
             border-right: 2px solid #555;
         }
 
         .sticky-col.header {
-            z-index: 50; /* Top-left corner above everything */
+            z-index: 50;
             background: var(--bg-header);
             text-align: center;
             vertical-align: middle;
@@ -131,63 +126,49 @@
             font-weight: 600;
         }
 
-        /* --- Month Headers --- */
         .month-header-cell {
             color: var(--accent-color);
             font-weight: 700;
             font-size: 13px;
-            text-transform: uppercase;
             padding: 8px 0;
             border-bottom: 1px solid var(--border-color);
             background: var(--bg-header);
+            text-align: center;
         }
 
-        /* --- Date Columns --- */
         .date-cell {
-            width: 28px; /* Compact width */
+            width: 28px;
             text-align: center;
             font-size: 11px;
-            color: #666;
+            color: #888;
             background: var(--bg-header);
             height: 24px;
             vertical-align: middle;
         }
         
-        .date-cell.active-day {
-            color: #fff;
-            font-weight: 700;
-        }
-
         .day-cell {
             width: 28px;
             text-align: center;
-            font-size: 9px;
-            color: #444;
+            font-size: 10px;
+            color: #555;
             height: 20px;
             vertical-align: middle;
             background: var(--bg-header);
         }
 
-        /* --- Group Rows --- */
         .group-row td {
             background: #151515;
-            padding: 6px;
+            padding: 6px 10px;
             font-size: 11px;
             font-weight: 700;
             color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
-            /* Group header text sticks to left */
             position: sticky;
             left: 0; 
             z-index: 30;
         }
 
-        /* --- Event Rows --- */
-        .event-row {
-            height: 32px; /* Fixed compact height */
-        }
+        .event-row { height: 32px; }
 
         .event-name {
             font-size: 11px;
@@ -196,10 +177,9 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* Center alignment request */
             display: flex;
             align-items: center;
-            justify-content: center; /* Horizontally Center */
+            justify-content: center;
             height: 32px;
             text-align: center;
         }
@@ -209,17 +189,13 @@
             position: relative;
         }
         
-        .grid-cell:hover {
-            background: #111;
-        }
+        .grid-cell:hover { background: #111; }
 
-        /* --- Event Bars --- */
         .event-bar {
             position: absolute;
             top: 4px;
             bottom: 4px;
             border-radius: 4px;
-            /* Vibrant gradients */
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
             cursor: pointer;
             z-index: 10;
@@ -230,17 +206,16 @@
             z-index: 20;
         }
         
-        /* Tooltip */
         .tooltip {
             visibility: hidden;
             position: absolute;
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%) translateY(-5px);
-            background: rgba(0,0,0,0.9);
-            border: 1px solid #333;
+            background: rgba(0,0,0,0.95);
+            border: 1px solid #444;
             color: #fff;
-            padding: 6px 10px;
+            padding: 8px 12px;
             border-radius: 4px;
             font-size: 11px;
             white-space: pre;
@@ -248,20 +223,18 @@
             pointer-events: none;
             z-index: 100;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            min-width: 150px;
         }
         
-        .event-bar:hover .tooltip {
-            visibility: visible;
-        }
+        .event-bar:hover .tooltip { visibility: visible; }
 
-        /* Timeline Indicator */
         #timeline {
             position: absolute;
             top: 0;
             bottom: 0;
-            width: 1px;
+            width: 2px;
             background: var(--timeline-color);
-            box-shadow: 0 0 8px var(--timeline-color);
+            box-shadow: 0 0 10px var(--timeline-color);
             z-index: 100;
             pointer-events: none;
             display: none;
@@ -271,14 +244,14 @@
             content: '';
             position: absolute;
             top: 0;
-            left: -3px;
-            width: 7px;
-            height: 7px;
+            left: -4px;
+            width: 10px;
+            height: 10px;
             background: var(--timeline-color);
             border-radius: 50%;
+            box-shadow: 0 0 10px var(--timeline-color);
         }
 
-        /* Mobile */
         @media (max-width: 768px) {
             .sticky-col { width: 100px; min-width: 100px; }
             .event-name { font-size: 10px; }
@@ -294,12 +267,11 @@
         </div>
         <div class="controls">
             <select id="startMonthSelect"></select>
-            <button onclick="goToNow()">Now</button>
+            <button onclick="goToNow()">今日</button>
         </div>
     </div>
 
     <div class="viewport" id="viewport">
-        <!-- Timeline injected here -->
         <div id="timeline"></div>
         <table id="calendarTable">
             <thead id="calendarHeader"></thead>
@@ -308,7 +280,6 @@
     </div>
 
     <script>
-        // --- Data ---
         const groups = [
             {
                 title: '週次イベント',
@@ -335,7 +306,6 @@
             }
         ];
 
-        // --- Logic ---
         function parseDate(dStr, tStr) {
             const [y, m, d] = dStr.split('-').map(Number);
             const [hr, min] = tStr.split(':').map(Number);
@@ -362,19 +332,16 @@
             return occs;
         }
 
-        // --- Render ---
         const startMonthSelect = document.getElementById('startMonthSelect');
-        // Populate (2026 full year)
         for (let i = 0; i < 12; i++) {
             const opt = document.createElement('option');
             opt.value = i;
-            opt.textContent = new Date(2026, i, 1).toLocaleString('en', {month:'short', year:'numeric'});
+            opt.textContent = new Date(2026, i, 1).toLocaleString('ja-JP', {month:'long', year:'numeric'});
             startMonthSelect.appendChild(opt);
         }
 
         function render(startMonthIdx) {
             const year = 2026;
-            // Render 3 months
             const monthsToRender = 3;
             const monthConfigs = [];
             let totalDays = 0;
@@ -389,31 +356,33 @@
                 totalDays += days;
             }
 
-            const viewStart = new Date(monthConfigs[0].year, monthConfigs[0].month, 1);
+            // Define precise view boundaries
+            const viewStart = new Date(monthConfigs[0].year, monthConfigs[0].month, 1, 0, 0, 0);
             const lastM = monthConfigs[monthConfigs.length-1];
-            const viewEnd = new Date(lastM.year, lastM.month, lastM.days, 23, 59);
+            // End of the last day (23:59:59.999)
+            const viewEnd = new Date(lastM.year, lastM.month, lastM.days, 23, 59, 59, 999);
 
             document.getElementById('rangeDisplay').textContent = 
-                `${viewStart.toLocaleString('en',{month:'short'})} - ${viewEnd.toLocaleString('en',{month:'short', year:'numeric'})}`;
+                `${viewStart.toLocaleString('ja-JP',{month:'long'})} - ${viewEnd.toLocaleString('ja-JP',{month:'long', year:'numeric'})}`;
 
             const thead = document.getElementById('calendarHeader');
             const tbody = document.getElementById('calendarBody');
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            // 1. Month Header Row
+            // 1. Month Row
             const rowM = document.createElement('tr');
             const corner = document.createElement('th');
             corner.className = 'sticky-col header';
-            corner.textContent = 'EVENT';
-            corner.rowSpan = 3; // Corner spans all 3 header rows
+            corner.textContent = 'イベント';
+            corner.rowSpan = 3;
             rowM.appendChild(corner);
 
             monthConfigs.forEach(cfg => {
                 const th = document.createElement('th');
                 th.className = 'month-header-cell';
                 th.colSpan = cfg.days;
-                th.textContent = new Date(cfg.year, cfg.month).toLocaleString('en', {month:'long'});
+                th.textContent = new Date(cfg.year, cfg.month).toLocaleString('ja-JP', {month:'long'});
                 rowM.appendChild(th);
             });
             thead.appendChild(rowM);
@@ -424,9 +393,6 @@
                 for(let d=1; d<=cfg.days; d++) {
                     const th = document.createElement('th');
                     th.className = 'date-cell';
-                    // Highlight today
-                    // Simple check (assuming 2026 context or current)
-                    // For demo visual, let's just render numbers
                     th.textContent = d;
                     rowD.appendChild(th);
                 }
@@ -435,34 +401,28 @@
 
             // 3. Weekday Row
             const rowW = document.createElement('tr');
-            const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+            const daysJP = ['日','月','火','水','木','金','土'];
             monthConfigs.forEach(cfg => {
                 for(let d=1; d<=cfg.days; d++) {
                     const date = new Date(cfg.year, cfg.month, d);
                     const th = document.createElement('th');
                     th.className = 'day-cell';
-                    th.textContent = daysShort[date.getDay()];
-                    if (date.getDay() === 0 || date.getDay() === 6) th.style.color = '#666'; // Dim weekends
+                    th.textContent = daysJP[date.getDay()];
+                    if (date.getDay() === 0 || date.getDay() === 6) th.style.color = '#555';
                     rowW.appendChild(th);
                 }
             });
             thead.appendChild(rowW);
 
-            // 4. Body Rows
+            // 4. Body
             groups.forEach(grp => {
-                // Group Title
                 const rowG = document.createElement('tr');
                 rowG.className = 'group-row';
                 const tdG = document.createElement('td');
                 tdG.className = 'sticky-col';
                 tdG.textContent = grp.title;
-                // Since this is a td in sticky col, it aligns with event names
-                // But we want it to span the whole row visually? 
-                // Actually sticking strictly to the left col is cleaner for the grid.
                 rowG.appendChild(tdG);
                 
-                // Filler cells for group row (darkened)
-                // Just one big cell spanning or individual? Individual to keep alignment correct
                 const fillTd = document.createElement('td');
                 fillTd.colSpan = totalDays;
                 fillTd.style.background = '#111';
@@ -474,7 +434,6 @@
                     const row = document.createElement('tr');
                     row.className = 'event-row';
                     
-                    // Name
                     const nameTd = document.createElement('td');
                     nameTd.className = 'sticky-col';
                     const nameDiv = document.createElement('div');
@@ -483,118 +442,98 @@
                     nameTd.appendChild(nameDiv);
                     row.appendChild(nameTd);
 
-                    // Grid Cells container - actually we just append one big cell per month?
-                    // No, for column alignment we need individual cells.
-                    // To optimize DOM, we render individual cells.
-                    
-                    // Pre-calc occurrences
-                    const occs = getOccurrences(evt, viewStart, viewEnd);
-
-                    // Render cells
-                    let globalDayIdx = 0;
-                    const dayCells = []; // Keep ref to append bars
-                    
+                    const dayCells = [];
                     monthConfigs.forEach(cfg => {
                         for(let d=1; d<=cfg.days; d++) {
                             const td = document.createElement('td');
                             td.className = 'grid-cell';
                             row.appendChild(td);
                             dayCells.push({ td, date: new Date(cfg.year, cfg.month, d) });
-                            globalDayIdx++;
                         }
                     });
-                    
                     tbody.appendChild(row);
 
-                    // Place Bars
-                    // Since cells are in a flat array `dayCells`, we map dates to indices.
-                    // This is robust.
-                    
+                    const occs = getOccurrences(evt, viewStart, viewEnd);
+
                     occs.forEach(occ => {
-                        // Find start index
-                        // Simple difference in days from viewStart
-                        const diffTime = occ.start.getTime() - viewStart.getTime();
-                        const startDayIdx = Math.floor(diffTime / (1000 * 3600 * 24));
+                        // Calculate offset in MS from viewStart
+                        const startMs = occ.start - viewStart;
+                        // Calculate index in days
+                        const startDayIdx = Math.floor(startMs / (1000 * 60 * 60 * 24));
                         
-                        // If startDayIdx < 0, it means it started before view, but overlaps.
-                        // We clamp start.
-                        
+                        // Handle negative start (started before view)
                         let renderStartIdx = startDayIdx;
                         let renderStartTime = occ.start;
-                        if (renderStartIdx < 0) {
-                            renderStartIdx = 0;
-                            renderStartTime = viewStart; // Visual start
-                        }
-
-                        if (renderStartIdx >= dayCells.length) return; // Starts after view
-
-                        // Calculate width
-                        const durMs = occ.end - renderStartTime;
-                        const widthPct = (durMs / 86400000) * 100; // 100% = 1 cell width
                         
-                        // Calculate left offset within the start cell
-                        let leftPct = 0;
-                        if (renderStartIdx === startDayIdx) { // Only if actual start
-                           const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
-                           leftPct = (mins / 1440) * 100;
+                        if (startDayIdx < 0) {
+                            renderStartIdx = 0;
+                            renderStartTime = viewStart; 
                         }
 
-                        // Append to the specific cell
+                        if (renderStartIdx >= dayCells.length) return;
+
+                        // Width in MS relative to view
+                        const durMs = occ.end - renderStartTime;
+                        const widthPct = (durMs / 86400000) * 100;
+
+                        // Left offset within cell
+                        let leftPct = 0;
+                        if (renderStartIdx === startDayIdx) {
+                            const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
+                            leftPct = (mins / 1440) * 100;
+                        }
+
                         const cell = dayCells[renderStartIdx].td;
                         
                         const bar = document.createElement('div');
                         bar.className = 'event-bar';
                         bar.style.background = occ.color;
                         bar.style.left = `${leftPct}%`;
-                        // Width relative to CELL.
-                        // Since `overflow: visible` is default on TD? No, usually hidden or static.
-                        // We need `overflow: visible` on TD and absolute bar.
-                        // However, standard tables clip.
-                        // Trick: Append to the first cell, allow width to span multiple cells.
-                        // Ensure TD has overflow visible.
+                        bar.style.width = `calc(${widthPct}% - 1px)`;
                         
-                        // Standard table cells don't support overflow: visible well for content spanning others easily without layout issues.
-                        // But with fixed layout and simple divs, it works if z-index is managed.
-                        
-                        bar.style.width = `calc(${widthPct}% - 1px)`; // -1px for gap
-                        
-                        // Tooltip
                         const tt = document.createElement('div');
                         tt.className = 'tooltip';
                         tt.innerHTML = `<b>${occ.name}</b><br>${occ.start.toLocaleString('ja-JP')} ~ <br>${occ.end.toLocaleString('ja-JP')}`;
                         bar.appendChild(tt);
                         
-                        // Ensure cell allows spillover
                         cell.style.overflow = 'visible';
                         cell.appendChild(bar);
                     });
                 });
             });
 
-            updateTimeline(viewStart, totalDays);
+            // Pass exact view boundaries to timeline updater
+            updateTimeline(viewStart, viewEnd);
         }
 
-        function updateTimeline(viewStart, totalDays) {
-            const now = new Date(); // Real time
-            // For demo: assume we are in 2026 if user selected it, else real time.
-            // Timeline only shows if 'now' is within view.
-            
-            const diff = now - viewStart;
-            if (diff >= 0) {
-                const diffDays = diff / (1000 * 3600 * 24);
-                if (diffDays <= totalDays) {
-                    const tl = document.getElementById('timeline');
-                    tl.style.display = 'block';
-                    
-                    // We need to map days to pixels.
-                    // 1 day = 28px (width of date-cell)
-                    // + 140px sticky col
-                    const colWidth = 28;
-                    const stickyWidth = 140;
-                    
-                    const leftPos = stickyWidth + (diffDays * colWidth);
-                    tl.style.left = `${leftPos}px`;
-                }
+        function updateTimeline(viewStart, viewEnd) {
+            const now = new Date(); // Real current time
+            // For testing/demo logic:
+            // const now = new Date(2026, 0, 27, 17, 45); 
+
+            if (now >= viewStart && now <= viewEnd) {
+                const tl = document.getElementById('timeline');
+                tl.style.display = 'block';
+
+                const totalMs = viewEnd - viewStart;
+                const currentMs = now - viewStart;
+                const pct = currentMs / totalMs;
+
+                // Total width = StickyCol + (TotalDays * CellWidth)
+                const stickyWidth = 140;
+                // We need precise day count in this view
+                const totalDays = Math.round(totalMs / (1000 * 60 * 60 * 24));
+                const cellWidth = 28; // Defined in CSS
+                
+                // Total pixel width of the calendar grid area
+                const gridWidth = totalDays * cellWidth;
+                
+                // Position relative to the container
+                const leftPos = stickyWidth + (gridWidth * pct);
+                
+                tl.style.left = `${leftPos}px`;
+            } else {
+                document.getElementById('timeline').style.display = 'none';
             }
         }
 
@@ -606,22 +545,26 @@
             setTimeout(() => {
                 const tl = document.getElementById('timeline');
                 if (tl.style.display !== 'none') {
-                   const scroll = parseInt(tl.style.left) - (window.innerWidth / 2);
-                   document.getElementById('viewport').scrollTo({left: scroll, behavior: 'smooth'});
+                    // Center the timeline in viewport
+                    const scroll = parseInt(tl.style.left) - (window.innerWidth / 2);
+                    document.getElementById('viewport').scrollTo({left: scroll, behavior: 'smooth'});
                 }
             }, 100);
         }
 
         startMonthSelect.addEventListener('change', (e) => render(parseInt(e.target.value)));
         
-        // Init
+        // Initial load
         goToNow();
         
-        // Auto update timeline
+        // Update timeline periodically
         setInterval(() => {
+            // Re-run render with current state to update timeline pos
+            // Or simpler: just call updateTimeline if view params stored
+            // For simple refresh:
             if (document.getElementById('timeline').style.display !== 'none') {
-                // simple re-render or just recalc pos?
-                // Just trigger button logic for simplicity if needed, or static for now.
+                // Triggering render again is safe
+                render(parseInt(startMonthSelect.value));
             }
         }, 60000);
 
