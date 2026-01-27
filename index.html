@@ -16,8 +16,6 @@
             --text-secondary: #888888;
             --accent-color: #00e5ff;
             --timeline-color: #ff0055;
-
-            /* NEW: framing */
             --shell-max-width: 1600px;
             --shell-pad: clamp(12px, 2vw, 24px);
         }
@@ -26,7 +24,7 @@
 
         body {
             margin: 0;
-            padding: var(--shell-pad); /* NEW: space from edges */
+            padding: var(--shell-pad);
             font-family: 'Inter', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-primary);
@@ -34,11 +32,10 @@
             overflow: hidden;
         }
 
-        /* NEW: centered frame */
         .app-shell {
             width: min(var(--shell-max-width), 100%);
             height: calc(100vh - (2 * var(--shell-pad)));
-            margin: 0 auto;           /* NEW: centered */
+            margin: 0 auto;
             border-radius: 16px;
             overflow: hidden;
             border: 1px solid #1f1f1f;
@@ -46,6 +43,7 @@
             box-shadow: 0 20px 80px rgba(0,0,0,0.65);
             display: flex;
             flex-direction: column;
+            position: relative; /* Context for app-wide absolutes if needed */
         }
 
         .header-container {
@@ -98,7 +96,7 @@
 
         .viewport {
             flex: 1 1 auto;
-            min-height: 0; /* IMPORTANT for flex + scroll */
+            min-height: 0;
             overflow: auto;
             position: relative;
             background: var(--bg-panel);
@@ -221,30 +219,30 @@
 
         .event-bar:hover {
             filter: brightness(1.3);
-            z-index: 20;
+            /* z-index is handled by hover logic now if needed, but simple CSS hover works for brightness */
         }
-        
-        .tooltip {
-            visibility: hidden;
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(-5px);
-            background: rgba(0,0,0,0.95);
+
+        /* NEW: Global Tooltip (Fixed position to escape overflow) */
+        #global-tooltip {
+            position: fixed; /* Escapes any overflow:hidden parent */
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.95);
             border: 1px solid #444;
             color: #fff;
             padding: 8px 12px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 11px;
             white-space: pre;
             text-align: center;
-            pointer-events: none;
-            z-index: 100;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            min-width: 150px;
+            pointer-events: none; /* Let mouse pass through */
+            z-index: 9999; /* Top of everything */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transform: translate(-50%, -100%); /* Center horizontally, sit above cursor */
+            margin-top: -8px; /* Slight offset from target */
         }
-        
-        .event-bar:hover .tooltip { visibility: visible; }
 
         #timeline {
             position: absolute;
@@ -299,6 +297,9 @@
             </table>
         </div>
     </div>
+
+    <!-- NEW: Shared Tooltip Element -->
+    <div id="global-tooltip"></div>
 
     <script>
         const groups = [
@@ -361,6 +362,30 @@
             startMonthSelect.appendChild(opt);
         }
 
+        // --- GLOBAL TOOLTIP LOGIC ---
+        const tooltipEl = document.getElementById('global-tooltip');
+
+        function showTooltip(e, name, start, end) {
+            const rect = e.target.getBoundingClientRect();
+            
+            // Content
+            tooltipEl.innerHTML = `<b>${name}</b><br>${start} ~ <br>${end}`;
+            
+            // Position: Center above the element
+            // rect.left + rect.width/2 gives center X
+            // rect.top gives top Y
+            const x = rect.left + (rect.width / 2);
+            const y = rect.top;
+
+            tooltipEl.style.left = `${x}px`;
+            tooltipEl.style.top = `${y}px`;
+            tooltipEl.style.opacity = '1';
+        }
+
+        function hideTooltip() {
+            tooltipEl.style.opacity = '0';
+        }
+
         function render(startMonthIdx) {
             const year = 2026;
             const monthsToRender = 3;
@@ -388,7 +413,6 @@
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            // Month row
             const rowM = document.createElement('tr');
             const corner = document.createElement('th');
             corner.className = 'sticky-col header';
@@ -405,7 +429,6 @@
             });
             thead.appendChild(rowM);
 
-            // Date row
             const rowD = document.createElement('tr');
             monthConfigs.forEach(cfg => {
                 for(let d=1; d<=cfg.days; d++) {
@@ -417,7 +440,6 @@
             });
             thead.appendChild(rowD);
 
-            // Weekday row
             const rowW = document.createElement('tr');
             const daysJP = ['日','月','火','水','木','金','土'];
             monthConfigs.forEach(cfg => {
@@ -432,7 +454,6 @@
             });
             thead.appendChild(rowW);
 
-            // Body
             groups.forEach(grp => {
                 const rowG = document.createElement('tr');
                 rowG.className = 'group-row';
@@ -501,10 +522,13 @@
                         bar.style.left = `${leftPct}%`;
                         bar.style.width = `calc(${widthPct}% - 1px)`;
 
-                        const tt = document.createElement('div');
-                        tt.className = 'tooltip';
-                        tt.innerHTML = `<b>${occ.name}</b><br>${occ.start.toLocaleString('ja-JP')} ~ <br>${occ.end.toLocaleString('ja-JP')}`;
-                        bar.appendChild(tt);
+                        // Format strings for tooltip
+                        const sStr = occ.start.toLocaleString('ja-JP');
+                        const eStr = occ.end.toLocaleString('ja-JP');
+                        
+                        // Add events for global tooltip
+                        bar.addEventListener('mouseenter', (e) => showTooltip(e, occ.name, sStr, eStr));
+                        bar.addEventListener('mouseleave', hideTooltip);
 
                         cell.style.overflow = 'visible';
                         cell.appendChild(bar);
