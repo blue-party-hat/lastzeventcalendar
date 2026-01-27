@@ -5,547 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Last Z Event Scheduler</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-            --color-bg-primary: #0f172a;
-            --color-bg-secondary: #1e293b;
-            --color-text-primary: #f1f5f9;
-            --color-text-secondary: #cbd5e1;
-            --color-primary: #06b6d4;
-            --color-primary-dark: #0891b2;
-            --color-border: rgba(148, 163, 184, 0.1);
-            --color-hover: rgba(6, 182, 212, 0.05);
-            --timeline-color: #f43f5e;
+            /* Pure Black Theme */
+            --bg-body: #000000;
+            --bg-panel: #0a0a0a;
+            --bg-header: #111111;
+            --border-color: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --accent-color: #00e5ff; /* Cyan accent */
+            --timeline-color: #ff0055; /* Neon Red */
         }
 
         * { box-sizing: border-box; }
 
-        html, body {
+        body {
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, var(--color-bg-primary) 0%, #1a2844 100%);
-            color: var(--color-text-primary);
-            min-height: 100vh;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 100%;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            overflow: hidden;
         }
 
-        .header {
-            margin-bottom: 20px;
-            text-align: center;
-            flex-shrink: 0;
+        .header-container {
+            padding: 16px 20px;
+            background: var(--bg-body);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 50;
         }
 
-        .header h1 {
-            margin: 0 0 8px 0;
-            font-size: 24px;
+        .title-block h1 {
+            margin: 0;
+            font-size: 20px;
             font-weight: 700;
-            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            background: linear-gradient(90deg, #fff, #888);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
-        
-        .header p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--color-text-secondary);
+
+        .title-block p {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .controls {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            gap: 10px;
         }
 
-        .controls select, .controls button {
-            padding: 8px 12px;
-            border: 1px solid var(--color-border);
-            border-radius: 6px;
-            font-size: 13px;
-            background: var(--color-bg-secondary);
-            color: var(--color-text-primary);
+        select, button {
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
             cursor: pointer;
         }
-
-        .controls button {
-            background: var(--color-primary);
-            border: none;
-            color: white;
+        
+        button {
+            background: var(--accent-color);
+            color: black;
             font-weight: 600;
+            border: none;
         }
 
-        .calendar-wrapper {
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-border);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            position: relative;
+        /* --- Main Scroll Area --- */
+        .viewport {
             flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .table-scroller {
             overflow: auto;
-            flex-grow: 1;
             position: relative;
+            background: var(--bg-panel);
         }
 
-        .calendar-table {
+        table {
             border-collapse: separate;
             border-spacing: 0;
-            min-width: 100%;
             table-layout: fixed;
         }
 
-        /* --- Header Cells --- */
-        .calendar-table th {
-            background: #1e293b; /* Fallback */
-            background: linear-gradient(180deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
-            border-bottom: 1px solid var(--color-border);
-            border-right: 1px solid var(--color-border);
-            padding: 8px 2px;
-            text-align: center;
-            width: 35px; /* Narrower columns */
+        th, td {
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Sticky Headers */
+        thead {
             position: sticky;
             top: 0;
-            z-index: 30;
-            height: 40px;
-        }
-
-        /* Sticky Left Column Header */
-        .calendar-table th.event-name-header {
-            width: 160px; /* Reduced width */
-            min-width: 160px;
-            left: 0;
             z-index: 40;
+            background: var(--bg-header);
+        }
+
+        /* Left Column (Sticky) */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            width: 140px;
+            min-width: 140px;
+            max-width: 140px;
+            z-index: 45; /* Above normal cells */
+            background: var(--bg-panel);
+            border-right: 2px solid #555;
+        }
+
+        .sticky-col.header {
+            z-index: 50; /* Top-left corner above everything */
+            background: var(--bg-header);
             text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--color-text-secondary);
-            border-right: 2px solid var(--color-border);
-            background: #1e293b; /* Opaque bg for sticky */
-        }
-
-        .calendar-table th.date-number {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-
-        .calendar-table th.day-of-week {
-            font-size: 10px;
-            font-weight: 500;
-            color: var(--color-text-secondary);
-            top: 40px; /* Below date header */
-            height: 25px;
-            padding: 4px 0;
-        }
-        
-        /* Fix secondary header sticky top */
-        .header-row-2 th {
-            top: 40px;
-        }
-
-        /* --- Body Cells --- */
-        .calendar-table td {
-            border-right: 1px solid var(--color-border);
-            border-bottom: 1px solid var(--color-border);
-            height: 36px; /* Compact row height */
-            position: relative;
             vertical-align: middle;
-            padding: 0;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 600;
         }
 
-        .calendar-table td:hover {
-            background: var(--color-hover);
-        }
-
-        /* Group Header Row */
-        .group-header-row td {
-            background: rgba(15, 23, 42, 0.8);
-            padding: 8px 12px;
+        /* --- Month Headers --- */
+        .month-header-cell {
+            color: var(--accent-color);
             font-weight: 700;
-            color: var(--color-primary);
-            font-size: 12px;
-            border-bottom: 1px solid var(--color-border);
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            position: sticky;
-            left: 0;
-            z-index: 25; /* Below header, above content */
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-header);
+        }
+
+        /* --- Date Columns --- */
+        .date-cell {
+            width: 28px; /* Compact width */
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            background: var(--bg-header);
+            height: 24px;
+            vertical-align: middle;
         }
         
-        /* Sticky Left Column (Event Names) */
-        .event-name-cell {
-            font-size: 12px;
-            font-weight: 500;
-            padding: 0 12px;
-            border-right: 2px solid var(--color-border);
-            background: var(--color-bg-secondary);
+        .date-cell.active-day {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .day-cell {
+            width: 28px;
+            text-align: center;
+            font-size: 9px;
+            color: #444;
+            height: 20px;
+            vertical-align: middle;
+            background: var(--bg-header);
+        }
+
+        /* --- Group Rows --- */
+        .group-row td {
+            background: #151515;
+            padding: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            /* Group header text sticks to left */
             position: sticky;
-            left: 0;
-            z-index: 20;
-            color: var(--color-text-primary);
+            left: 0; 
+            z-index: 30;
+        }
+
+        /* --- Event Rows --- */
+        .event-row {
+            height: 32px; /* Fixed compact height */
+        }
+
+        .event-name {
+            font-size: 11px;
+            color: #eee;
+            padding: 0 8px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 160px;
-            /* Center vertically */
-            vertical-align: middle;
-            display: table-cell; 
+            /* Center alignment request */
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Horizontally Center */
+            height: 32px;
+            text-align: center;
         }
 
-        /* Event Bars */
+        .grid-cell {
+            background: var(--bg-panel);
+            position: relative;
+        }
+        
+        .grid-cell:hover {
+            background: #111;
+        }
+
+        /* --- Event Bars --- */
         .event-bar {
             position: absolute;
-            height: 20px; /* Thinner bar for compact mode */
-            top: 50%;
-            transform: translateY(-50%);
+            top: 4px;
+            bottom: 4px;
             border-radius: 4px;
+            /* Vibrant gradients */
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
             cursor: pointer;
             z-index: 10;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-            /* No text inside */
         }
 
         .event-bar:hover {
-            filter: brightness(1.2);
-            z-index: 100;
+            filter: brightness(1.3);
+            z-index: 20;
         }
-
+        
         /* Tooltip */
-        .event-bar .tooltip {
+        .tooltip {
+            visibility: hidden;
             position: absolute;
             bottom: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-5px);
-            background: rgba(15, 23, 42, 0.95);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            white-space: pre;
-            text-align: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.1s;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(4px);
-            width: max-content;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-
-        .event-bar:hover .tooltip {
-            opacity: 1;
-        }
-
-        /* Timeline Indicator */
-        .timeline-indicator {
-            position: absolute;
-            top: 0;
-            width: 2px;
-            background: var(--timeline-color);
-            z-index: 28; /* Above grid, below header */
-            pointer-events: none;
-            box-shadow: 0 0 6px var(--timeline-color);
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            .header h1 {
-                font-size: 20px;
-            }
-            .calendar-table th.event-name-header,
-            .event-name-cell {
-                width: 120px; /* Even smaller left col */
-                min-width: 120px;
-                font-size: 11px;
-                padding: 0 8px;
-            }
-            .calendar-table th {
-                width: 30px; /* Narrower days */
-            }
-            .event-bar {
-                height: 16px;
-            }
-            .calendar-table td {
-                height: 32px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Last Z Event Scheduler</h1>
-            <p id="monthTitleDisplay">Loading...</p>
-        </div>
-
-        <div class="controls">
-            <select id="monthSelect"></select>
-            <button onclick="goToToday()">Today</button>
-        </div>
-
-        <div class="calendar-wrapper">
-            <div class="table-scroller" id="tableScroller">
-                <!-- Timeline will be injected here absolutely positioned relative to scroller content -->
-                <div id="timeline" class="timeline-indicator" style="display: none;"></div>
-                
-                <table class="calendar-table" id="calendarTable"></table>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Data Groups
-        const groups = [
-            {
-                title: '週次イベント',
-                events: [
-                    { name: '幸福自選宝庫', color: '#0ea5e9', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
-                    { name: 'ラッキー抽選', color: '#22d3ee', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
-                    { name: '弾丸のやつ', color: '#2dd4bf', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
-                    { name: 'ラッキー商店', color: '#34d399', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
-                ]
-            },
-            {
-                title: 'SvS（準決勝）',
-                events: [
-                    { name: 'SvS侵略権争い', color: '#f59e0b', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
-                    { name: 'SvS本戦', color: '#ea580c', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
-                ]
-            },
-            {
-                title: 'SvS（決勝）',
-                events: [
-                    { name: 'SvS侵略権争い', color: '#a855f7', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
-                    { name: 'SvS本戦', color: '#d946ef', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
-                ]
-            }
-        ];
-
-        function parseDateTime(dateStr, timeStr) {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const [hour, minute] = timeStr.split(':').map(Number);
-            return new Date(year, month - 1, day, hour, minute);
-        }
-
-        function generateOccurrences(event, rangeStart, rangeEnd) {
-            const occurrences = [];
-            const eventStart = parseDateTime(event.startDate, event.startTime);
-            const duration = parseDateTime(event.endDate, event.endTime) - eventStart;
-            const cycleDays = event.cycle;
-
-            let current = new Date(eventStart);
-            while (current.getTime() + duration < rangeStart.getTime()) {
-                current = new Date(current.getTime() + cycleDays * 86400000);
-            }
-
-            while (current <= rangeEnd) {
-                const occEnd = new Date(current.getTime() + duration);
-                if (occEnd >= rangeStart && current <= rangeEnd) {
-                    occurrences.push({ ...event, actualStart: new Date(current), actualEnd: occEnd });
-                }
-                current = new Date(current.getTime() + cycleDays * 86400000);
-            }
-            return occurrences;
-        }
-
-        const monthSelect = document.getElementById('monthSelect');
-        for(let i=0; i<12; i++) {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = new Date(2026, i, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
-            monthSelect.appendChild(opt);
-        }
-
-        function renderCalendar(monthIndex) {
-            const year = 2026;
-            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-            const monthStart = new Date(year, monthIndex, 1);
-            const monthEnd = new Date(year, monthIndex, daysInMonth, 23, 59, 59);
-
-            document.getElementById('monthTitleDisplay').textContent = `${new Date(year, monthIndex).toLocaleString('en-US', { month: 'long' })} ${year}`;
-            
-            const table = document.getElementById('calendarTable');
-            table.innerHTML = '';
-
-            // --- Header 1: Dates ---
-            const dateRow = document.createElement('tr');
-            const spacer = document.createElement('th');
-            spacer.className = 'event-name-header';
-            spacer.textContent = 'Event / Date';
-            dateRow.appendChild(spacer);
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const th = document.createElement('th');
-                th.className = 'date-header date-number';
-                th.textContent = d;
-                dateRow.appendChild(th);
-            }
-            table.appendChild(dateRow);
-
-            // --- Header 2: Days ---
-            const dayRow = document.createElement('tr');
-            dayRow.className = 'header-row-2';
-            const spacer2 = document.createElement('th');
-            spacer2.className = 'event-name-header'; 
-            dayRow.appendChild(spacer2); // Spacer below spacer
-            
-            const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateObj = new Date(year, monthIndex, d);
-                const th = document.createElement('th');
-                th.className = 'date-header day-of-week';
-                th.textContent = weekDays[dateObj.getDay()];
-                dayRow.appendChild(th);
-            }
-            table.appendChild(dayRow);
-
-            // --- Rows ---
-            groups.forEach(group => {
-                // Group Header
-                const groupRow = document.createElement('tr');
-                groupRow.className = 'group-header-row';
-                const titleCell = document.createElement('td');
-                titleCell.colSpan = daysInMonth + 1;
-                // Sticky calculation handled by CSS for first cell, but this spans.
-                // To make "Sticky" group header work for the text, we need the text to stick? 
-                // CSS Sticky on TD works if container scrolls.
-                titleCell.style.position = 'sticky';
-                titleCell.style.left = 0;
-                titleCell.textContent = group.title;
-                groupRow.appendChild(titleCell);
-                table.appendChild(groupRow);
-
-                group.events.forEach(eventDef => {
-                    const row = document.createElement('tr');
-                    
-                    const nameCell = document.createElement('td');
-                    nameCell.className = 'event-name-cell';
-                    nameCell.textContent = eventDef.name;
-                    nameCell.title = eventDef.name; // Tooltip for cut-off text
-                    row.appendChild(nameCell);
-
-                    const dayCells = [];
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        const cell = document.createElement('td');
-                        row.appendChild(cell);
-                        dayCells.push(cell);
-                    }
-                    table.appendChild(row);
-
-                    // Occurrences
-                    const calcStart = new Date(monthStart); calcStart.setDate(calcStart.getDate()-30);
-                    const calcEnd = new Date(monthEnd); calcEnd.setDate(calcEnd.getDate()+30);
-                    const occs = generateOccurrences(eventDef, calcStart, calcEnd);
-
-                    occs.forEach(occ => {
-                        if (occ.actualEnd < monthStart || occ.actualStart > monthEnd) return;
-
-                        let startIndex = 0, startPct = 0;
-                        if (occ.actualStart >= monthStart) {
-                            startIndex = occ.actualStart.getDate() - 1;
-                            startPct = (occ.actualStart.getHours()*60 + occ.actualStart.getMinutes()) / 1440 * 100;
-                        }
-
-                        const effStart = occ.actualStart < monthStart ? monthStart : occ.actualStart;
-                        const effEnd = occ.actualEnd > monthEnd ? monthEnd : occ.actualEnd;
-                        const widthPct = (effEnd - effStart) / 86400000 * 100;
-
-                        if (dayCells[startIndex]) {
-                            const bar = document.createElement('div');
-                            bar.className = 'event-bar';
-                            bar.style.backgroundColor = occ.color;
-                            bar.style.left = `${startPct}%`;
-                            bar.style.width = `${widthPct}%`;
-
-                            const tooltip = document.createElement('div');
-                            tooltip.className = 'tooltip';
-                            tooltip.innerHTML = `${occ.name}<br>${occ.actualStart.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})} ~ ${occ.actualEnd.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}`;
-                            bar.appendChild(tooltip);
-
-                            dayCells[startIndex].appendChild(bar);
-                        }
-                    });
-                });
-            });
-
-            updateTimeline(monthIndex, year);
-        }
-
-        function updateTimeline(monthIndex, year) {
-            const now = new Date();
-            const timeline = document.getElementById('timeline');
-            
-            if (now.getMonth() === monthIndex && now.getFullYear() === year) {
-                timeline.style.display = 'block';
-                
-                // Need to wait for render to get positions
-                setTimeout(() => {
-                    const table = document.getElementById('calendarTable');
-                    const dayHeaders = table.querySelectorAll('tr:first-child th.date-number');
-                    const todayHeader = dayHeaders[now.getDate() - 1];
-
-                    if (todayHeader) {
-                        const offsetLeft = todayHeader.offsetLeft;
-                        const dayWidth = todayHeader.offsetWidth;
-                        const timePct = (now.getHours()*60 + now.getMinutes()) / 1440;
-                        
-                        const leftPos = offsetLeft + (dayWidth * timePct);
-                        
-                        timeline.style.left = `${leftPos}px`;
-                        timeline.style.height = `${table.offsetHeight}px`;
-                        // Ensure timeline starts below the sticky header visually if desired, 
-                        // or just top:0 of scroller.
-                    }
-                }, 50);
-            } else {
-                timeline.style.display = 'none';
-            }
-        }
-
-        function goToToday() {
-            const now = new Date();
-            monthSelect.value = now.getMonth();
-            renderCalendar(now.getMonth());
-            
-            // Scroll to today
-            setTimeout(() => {
-                const scroller = document.getElementById('tableScroller');
-                const timeline = document.getElementById('timeline');
-                if (timeline.style.display !== 'none') {
-                    // Center the timeline
-                    const scrollLeft = parseInt(timeline.style.left) - (scroller.clientWidth / 2);
-                    scroller.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-                }
-            }, 100);
-        }
-
-        monthSelect.addEventListener('change', (e) => renderCalendar(parseInt(e.target.value)));
-        
-        // Initial load
-        goToToday();
-    </script>
-</body>
-</html>
+            transform: translateX(-50%) translateY(-5
