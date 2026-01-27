@@ -16,20 +16,36 @@
             --text-secondary: #888888;
             --accent-color: #00e5ff;
             --timeline-color: #ff0055;
+
+            /* NEW: framing */
+            --shell-max-width: 1600px;
+            --shell-pad: clamp(12px, 2vw, 24px);
         }
 
         * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            padding: 0;
+            padding: var(--shell-pad); /* NEW: space from edges */
             font-family: 'Inter', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-primary);
-            height: 100vh;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* NEW: centered frame */
+        .app-shell {
+            width: min(var(--shell-max-width), 100%);
+            height: calc(100vh - (2 * var(--shell-pad)));
+            margin: 0 auto;           /* NEW: centered */
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #1f1f1f;
+            background: #000;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.65);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .header-container {
@@ -41,6 +57,7 @@
             border-bottom: 1px solid var(--border-color);
             z-index: 50;
             height: 60px;
+            flex: 0 0 auto;
         }
 
         .title-block h1 {
@@ -80,7 +97,8 @@
         }
 
         .viewport {
-            flex-grow: 1;
+            flex: 1 1 auto;
+            min-height: 0; /* IMPORTANT for flex + scroll */
             overflow: auto;
             position: relative;
             background: var(--bg-panel);
@@ -253,6 +271,7 @@
         }
 
         @media (max-width: 768px) {
+            :root { --shell-max-width: 100%; }
             .sticky-col { width: 100px; min-width: 100px; }
             .event-name { font-size: 10px; }
             .date-cell, .day-cell { width: 24px; }
@@ -260,23 +279,25 @@
     </style>
 </head>
 <body>
-    <div class="header-container">
-        <div class="title-block">
-            <h1>Last Z Scheduler</h1>
-            <p id="rangeDisplay">Loading...</p>
+    <div class="app-shell">
+        <div class="header-container">
+            <div class="title-block">
+                <h1>Last Z Scheduler</h1>
+                <p id="rangeDisplay">Loading...</p>
+            </div>
+            <div class="controls">
+                <select id="startMonthSelect"></select>
+                <button onclick="goToNow()">今日</button>
+            </div>
         </div>
-        <div class="controls">
-            <select id="startMonthSelect"></select>
-            <button onclick="goToNow()">今日</button>
-        </div>
-    </div>
 
-    <div class="viewport" id="viewport">
-        <div id="timeline"></div>
-        <table id="calendarTable">
-            <thead id="calendarHeader"></thead>
-            <tbody id="calendarBody"></tbody>
-        </table>
+        <div class="viewport" id="viewport">
+            <div id="timeline"></div>
+            <table id="calendarTable">
+                <thead id="calendarHeader"></thead>
+                <tbody id="calendarBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -350,19 +371,16 @@
                 let m = startMonthIdx + i;
                 let y = year;
                 if (m > 11) { m -= 12; y++; }
-                
                 const days = new Date(y, m+1, 0).getDate();
                 monthConfigs.push({ year: y, month: m, days: days, startDayOffset: totalDays });
                 totalDays += days;
             }
 
-            // Define precise view boundaries
             const viewStart = new Date(monthConfigs[0].year, monthConfigs[0].month, 1, 0, 0, 0);
             const lastM = monthConfigs[monthConfigs.length-1];
-            // End of the last day (23:59:59.999)
             const viewEnd = new Date(lastM.year, lastM.month, lastM.days, 23, 59, 59, 999);
 
-            document.getElementById('rangeDisplay').textContent = 
+            document.getElementById('rangeDisplay').textContent =
                 `${viewStart.toLocaleString('ja-JP',{month:'long'})} - ${viewEnd.toLocaleString('ja-JP',{month:'long', year:'numeric'})}`;
 
             const thead = document.getElementById('calendarHeader');
@@ -370,7 +388,7 @@
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            // 1. Month Row
+            // Month row
             const rowM = document.createElement('tr');
             const corner = document.createElement('th');
             corner.className = 'sticky-col header';
@@ -387,7 +405,7 @@
             });
             thead.appendChild(rowM);
 
-            // 2. Date Row
+            // Date row
             const rowD = document.createElement('tr');
             monthConfigs.forEach(cfg => {
                 for(let d=1; d<=cfg.days; d++) {
@@ -399,7 +417,7 @@
             });
             thead.appendChild(rowD);
 
-            // 3. Weekday Row
+            // Weekday row
             const rowW = document.createElement('tr');
             const daysJP = ['日','月','火','水','木','金','土'];
             monthConfigs.forEach(cfg => {
@@ -414,7 +432,7 @@
             });
             thead.appendChild(rowW);
 
-            // 4. Body
+            // Body
             groups.forEach(grp => {
                 const rowG = document.createElement('tr');
                 rowG.className = 'group-row';
@@ -422,7 +440,7 @@
                 tdG.className = 'sticky-col';
                 tdG.textContent = grp.title;
                 rowG.appendChild(tdG);
-                
+
                 const fillTd = document.createElement('td');
                 fillTd.colSpan = totalDays;
                 fillTd.style.background = '#111';
@@ -433,7 +451,7 @@
                 grp.events.forEach(evt => {
                     const row = document.createElement('tr');
                     row.className = 'event-row';
-                    
+
                     const nameTd = document.createElement('td');
                     nameTd.className = 'sticky-col';
                     const nameDiv = document.createElement('div');
@@ -448,92 +466,76 @@
                             const td = document.createElement('td');
                             td.className = 'grid-cell';
                             row.appendChild(td);
-                            dayCells.push({ td, date: new Date(cfg.year, cfg.month, d) });
+                            dayCells.push(td);
                         }
                     });
                     tbody.appendChild(row);
 
                     const occs = getOccurrences(evt, viewStart, viewEnd);
-
                     occs.forEach(occ => {
-                        // Calculate offset in MS from viewStart
                         const startMs = occ.start - viewStart;
-                        // Calculate index in days
-                        const startDayIdx = Math.floor(startMs / (1000 * 60 * 60 * 24));
-                        
-                        // Handle negative start (started before view)
+                        const startDayIdx = Math.floor(startMs / 86400000);
+
                         let renderStartIdx = startDayIdx;
                         let renderStartTime = occ.start;
-                        
+
                         if (startDayIdx < 0) {
                             renderStartIdx = 0;
-                            renderStartTime = viewStart; 
+                            renderStartTime = viewStart;
                         }
-
                         if (renderStartIdx >= dayCells.length) return;
 
-                        // Width in MS relative to view
                         const durMs = occ.end - renderStartTime;
                         const widthPct = (durMs / 86400000) * 100;
 
-                        // Left offset within cell
                         let leftPct = 0;
                         if (renderStartIdx === startDayIdx) {
                             const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
                             leftPct = (mins / 1440) * 100;
                         }
 
-                        const cell = dayCells[renderStartIdx].td;
-                        
+                        const cell = dayCells[renderStartIdx];
                         const bar = document.createElement('div');
                         bar.className = 'event-bar';
                         bar.style.background = occ.color;
                         bar.style.left = `${leftPct}%`;
                         bar.style.width = `calc(${widthPct}% - 1px)`;
-                        
+
                         const tt = document.createElement('div');
                         tt.className = 'tooltip';
                         tt.innerHTML = `<b>${occ.name}</b><br>${occ.start.toLocaleString('ja-JP')} ~ <br>${occ.end.toLocaleString('ja-JP')}`;
                         bar.appendChild(tt);
-                        
+
                         cell.style.overflow = 'visible';
                         cell.appendChild(bar);
                     });
                 });
             });
 
-            // Pass exact view boundaries to timeline updater
             updateTimeline(viewStart, viewEnd);
         }
 
         function updateTimeline(viewStart, viewEnd) {
-            const now = new Date(); // Real current time
-            // For testing/demo logic:
-            // const now = new Date(2026, 0, 27, 17, 45); 
+            const now = new Date();
+            const tl = document.getElementById('timeline');
 
             if (now >= viewStart && now <= viewEnd) {
-                const tl = document.getElementById('timeline');
                 tl.style.display = 'block';
 
                 const totalMs = viewEnd - viewStart;
                 const currentMs = now - viewStart;
                 const pct = currentMs / totalMs;
 
-                // Total width = StickyCol + (TotalDays * CellWidth)
                 const stickyWidth = 140;
-                // We need precise day count in this view
-                const totalDays = Math.round(totalMs / (1000 * 60 * 60 * 24));
-                const cellWidth = 28; // Defined in CSS
-                
-                // Total pixel width of the calendar grid area
+                const totalDays = Math.round(totalMs / 86400000);
+                const cellWidth = 28;
+
                 const gridWidth = totalDays * cellWidth;
-                
-                // Position relative to the container
                 const leftPos = stickyWidth + (gridWidth * pct);
-                
+
                 tl.style.left = `${leftPos}px`;
             } else {
-                document.getElementById('timeline').style.display = 'none';
+                tl.style.display = 'none';
             }
         }
 
@@ -541,11 +543,10 @@
             const now = new Date();
             startMonthSelect.value = now.getMonth();
             render(now.getMonth());
-            
+
             setTimeout(() => {
                 const tl = document.getElementById('timeline');
                 if (tl.style.display !== 'none') {
-                    // Center the timeline in viewport
                     const scroll = parseInt(tl.style.left) - (window.innerWidth / 2);
                     document.getElementById('viewport').scrollTo({left: scroll, behavior: 'smooth'});
                 }
@@ -553,21 +554,11 @@
         }
 
         startMonthSelect.addEventListener('change', (e) => render(parseInt(e.target.value)));
-        
-        // Initial load
         goToNow();
-        
-        // Update timeline periodically
-        setInterval(() => {
-            // Re-run render with current state to update timeline pos
-            // Or simpler: just call updateTimeline if view params stored
-            // For simple refresh:
-            if (document.getElementById('timeline').style.display !== 'none') {
-                // Triggering render again is safe
-                render(parseInt(startMonthSelect.value));
-            }
-        }, 60000);
 
+        setInterval(() => {
+            render(parseInt(startMonthSelect.value));
+        }, 60000);
     </script>
 </body>
 </html>
