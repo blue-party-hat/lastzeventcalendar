@@ -124,7 +124,7 @@
 
         .calendar-table td {
             border: 1px solid var(--color-border);
-            padding: 4px;
+            padding: 0;
             height: 30px;
             position: relative;
             vertical-align: middle;
@@ -139,9 +139,16 @@
             border-right: 2px solid var(--color-border);
         }
 
+        .event-cell-content {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
         .event-bar {
             position: absolute;
-            height: 20px;
+            height: 22px;
             top: 50%;
             transform: translateY(-50%);
             border-radius: 3px;
@@ -161,6 +168,7 @@
         .event-bar:hover {
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
             transform: translateY(calc(-50% - 2px));
+            z-index: 10;
         }
 
         .event-bar.rotation {
@@ -188,6 +196,7 @@
             right: 0;
             height: 2px;
             background: var(--color-primary);
+            z-index: 5;
         }
 
         .info-box {
@@ -420,7 +429,6 @@
 
         function renderCalendar(month) {
             const year = 2026;
-            const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
             const daysInMonth = lastDay.getDate();
 
@@ -434,7 +442,7 @@
                 allOccurrences.push(...generateOccurrences(event, monthStart, monthEnd));
             });
 
-            // Create table header
+            // Create table
             const table = document.getElementById('calendarTable');
             table.innerHTML = '';
 
@@ -486,6 +494,9 @@
                 nameCell.textContent = eventName;
                 row.appendChild(nameCell);
 
+                // Find all occurrences of this event in this month
+                const eventOccurrences = allOccurrences.filter(occ => occ.name === eventName);
+
                 // Day cells
                 for (let day = 1; day <= daysInMonth; day++) {
                     const cell = document.createElement('td');
@@ -497,23 +508,59 @@
                         cell.classList.add('today-marker');
                     }
 
-                    // Find events for this date and event name
-                    const dayEvents = allOccurrences.filter(occ => {
-                        return occ.name === eventName &&
-                               occ.actualStart.getDate() === day &&
-                               occ.actualStart.getMonth() === month &&
-                               occ.actualStart.getFullYear() === year;
+                    const cellContent = document.createElement('div');
+                    cellContent.className = 'event-cell-content';
+
+                    // Check if any occurrence spans this day
+                    eventOccurrences.forEach(occ => {
+                        const occStartDate = new Date(occ.actualStart);
+                        occStartDate.setHours(0, 0, 0, 0);
+                        const occEndDate = new Date(occ.actualEnd);
+                        occEndDate.setHours(23, 59, 59, 999);
+
+                        const currentDayStart = new Date(dateObj);
+                        currentDayStart.setHours(0, 0, 0, 0);
+                        const currentDayEnd = new Date(dateObj);
+                        currentDayEnd.setHours(23, 59, 59, 999);
+
+                        // Check if event overlaps with this day
+                        if (occ.actualStart <= currentDayEnd && occ.actualEnd >= currentDayStart) {
+                            const bar = document.createElement('div');
+                            bar.className = `event-bar ${occ.type}`;
+                            bar.title = `${occ.name}\n${occ.actualStart.toLocaleString('ja-JP')} ~ ${occ.actualEnd.toLocaleString('ja-JP')}`;
+                            
+                            // Calculate left position based on event start
+                            if (occ.actualStart.getDate() === day && occ.actualStart.getMonth() === month) {
+                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
+                                bar.style.left = startPercent + '%';
+                            } else if (occ.actualStart.getDate() < day) {
+                                bar.style.left = '0%';
+                            }
+
+                            // Calculate width based on event duration
+                            if (occ.actualStart.getDate() === day && occ.actualEnd.getDate() === day) {
+                                // Event starts and ends on same day
+                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
+                                const endPercent = (occ.actualEnd.getHours() * 60 + occ.actualEnd.getMinutes()) / (24 * 60) * 100;
+                                bar.style.width = (endPercent - startPercent) + '%';
+                            } else if (occ.actualStart.getDate() === day) {
+                                // Event starts today but ends later
+                                const startPercent = (occ.actualStart.getHours() * 60 + occ.actualStart.getMinutes()) / (24 * 60) * 100;
+                                bar.style.width = (100 - startPercent) + '%';
+                            } else if (occ.actualEnd.getDate() === day) {
+                                // Event started before today but ends today
+                                const endPercent = (occ.actualEnd.getHours() * 60 + occ.actualEnd.getMinutes()) / (24 * 60) * 100;
+                                bar.style.width = endPercent + '%';
+                            } else {
+                                // Event spans entire day
+                                bar.style.width = '100%';
+                            }
+
+                            cellContent.appendChild(bar);
+                        }
                     });
 
-                    if (dayEvents.length > 0) {
-                        const event = dayEvents[0];
-                        const bar = document.createElement('div');
-                        bar.className = `event-bar ${event.type}`;
-                        bar.title = `${event.name}\n${event.actualStart.toLocaleString('ja-JP')}`;
-                        bar.textContent = '';
-                        cell.appendChild(bar);
-                    }
-
+                    cell.appendChild(cellContent);
                     row.appendChild(cell);
                 }
                 table.appendChild(row);
