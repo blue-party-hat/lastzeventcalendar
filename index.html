@@ -79,6 +79,8 @@
       display:flex;
       gap:8px;
       align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
 
     select, button{
@@ -90,15 +92,25 @@
       font-size:11px;
       cursor:pointer;
     }
+
     #tzSelect{
       border-color:var(--accent);
       color:var(--accent);
       font-weight:600;
     }
-    button{
+
+    #langBtn{
+      background:#111;
+      border:1px solid #444;
+      color:#fff;
+      font-weight:800;
+      min-width:44px;
+    }
+
+    #nowBtn{
       background:var(--accent);
       color:#000;
-      font-weight:800;
+      font-weight:900;
       border:none;
     }
 
@@ -183,7 +195,7 @@
     .group-row td:first-child{
       position:sticky;
       left:0;
-      z-index:46; /* above grid cells */
+      z-index:46;
       background:#151515;
       box-shadow:2px 0 8px rgba(0,0,0,.6);
     }
@@ -216,10 +228,9 @@
       box-shadow:0 4px 12px rgba(0,0,0,.45);
       cursor:pointer;
       z-index:10;
-      touch-action:manipulation; /* allow taps; don’t force double-tap zoom */
+      touch-action:manipulation;
     }
-
-    /* Make tiny bars easier to tap (bigger hit target without changing visuals) */
+    /* bigger tap target for tiny bars */
     .event-bar::before{
       content:"";
       position:absolute;
@@ -243,11 +254,12 @@
       z-index:9999;
       opacity:0;
       transition:opacity .12s ease;
-      max-width:min(320px, 90vw);
+      max-width:min(340px, 90vw);
       box-shadow:0 10px 24px rgba(0,0,0,.8);
       margin-top:-10px;
     }
 
+    /* Timeline (clamped to never draw inside sticky column) */
     #timeline{
       position:absolute;
       top:0;
@@ -272,10 +284,7 @@
     }
 
     @media (max-width: 768px){
-      :root{
-        --sticky-w:110px;
-        --cell-w:26px;
-      }
+      :root{ --sticky-w:110px; --cell-w:26px; }
       .header-container{ padding:10px 12px; }
     }
   </style>
@@ -285,11 +294,13 @@
   <div class="app-shell">
     <div class="header-container">
       <div class="title-block">
-        <h1>Last Z Scheduler</h1>
+        <h1 id="titleText">Last Z Scheduler</h1>
         <p id="rangeDisplay">Loading...</p>
       </div>
 
       <div class="controls">
+        <button id="langBtn" type="button">EN</button>
+
         <select id="tzSelect">
           <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
           <option value="UTC">UTC</option>
@@ -298,7 +309,7 @@
         </select>
 
         <select id="startMonthSelect"></select>
-        <button id="btnNow" type="button">今日</button>
+        <button id="nowBtn" type="button">今日</button>
       </div>
     </div>
 
@@ -315,37 +326,79 @@
 
   <script>
     // ----------------------------
-    // Data
+    // Persisted settings (language + timezone) using localStorage [web:147][web:149]
+    // ----------------------------
+    const LS_LANG = 'lz.lang';
+    const LS_TZ   = 'lz.tz';
+
+    let uiLang = (localStorage.getItem(LS_LANG) || 'ja'); // 'ja' | 'en'
+    if (uiLang !== 'ja' && uiLang !== 'en') uiLang = 'ja';
+
+    // ----------------------------
+    // i18n strings
+    // ----------------------------
+    const I18N = {
+      ja: {
+        title: 'Last Z Scheduler',
+        eventCol: 'イベント',
+        now: '今日',
+        days: ['日','月','火','水','木','金','土'],
+        range: (startDate, endDate) =>
+          `${startDate.toLocaleString('ja-JP', { month: 'long' })} - ${endDate.toLocaleString('ja-JP', { year: 'numeric', month: 'long' })}`,
+        monthLabel: (y, m0) => new Date(y, m0, 1).toLocaleString('ja-JP', { month: 'long' }),
+        monthSelect: (y, m0) => new Date(y, m0, 1).toLocaleString('ja-JP', { month: 'long', year: 'numeric' }),
+        tooltipFmt: (name, start, end) => `<b>${name}</b><br>${start}<br>~<br>${end}`,
+        langBtn: 'EN'
+      },
+      en: {
+        title: 'Last Z Scheduler',
+        eventCol: 'Event',
+        now: 'Now',
+        days: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        range: (startDate, endDate) =>
+          `${startDate.toLocaleString('en-US', { month: 'short' })} - ${endDate.toLocaleString('en-US', { month: 'short', year: 'numeric' })}`,
+        monthLabel: (y, m0) => new Date(y, m0, 1).toLocaleString('en-US', { month: 'long' }),
+        monthSelect: (y, m0) => new Date(y, m0, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+        tooltipFmt: (name, start, end) => `<b>${name}</b><br>${start}<br>to<br>${end}`,
+        langBtn: 'JP'
+      }
+    };
+
+    // ----------------------------
+    // Fully translated names (UI + group + event)
+    // If you have the official EN names, send them and I’ll swap these.
     // ----------------------------
     const groups = [
       {
         title: '週次イベント',
+        title_en: 'Weekly Events',
         events: [
-          { name: '幸福自選宝庫', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
-          { name: 'ラッキー抽選', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
-          { name: '弾丸のやつ', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
-          { name: 'ラッキー商店', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
+          { name: '幸福自選宝庫', name_en: 'Happiness Choice Vault', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー抽選', name_en: 'Lucky Draw', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+          { name: '弾丸のやつ', name_en: 'Bullet Event', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー商店', name_en: 'Lucky Shop', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
         ]
       },
       {
         title: 'SvS（準決勝）',
+        title_en: 'SvS (Semifinal)',
         events: [
-          { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
-          { name: 'SvS本戦', color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
+          { name: 'SvS侵略権争い', name_en: 'SvS Invasion Rights', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
+          { name: 'SvS本戦', name_en: 'SvS Main Battle', color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
         ]
       },
       {
         title: 'SvS（決勝）',
+        title_en: 'SvS (Final)',
         events: [
-          { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #89f7fe, #66a6ff)', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
-          { name: 'SvS本戦', color: 'linear-gradient(90deg, #cd9cf2, #f6f3ff)', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
+          { name: 'SvS侵略権争い', name_en: 'SvS Invasion Rights', color: 'linear-gradient(90deg, #89f7fe, #66a6ff)', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
+          { name: 'SvS本戦', name_en: 'SvS Main Battle', color: 'linear-gradient(90deg, #cd9cf2, #f6f3ff)', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
         ]
       }
     ];
 
     // ----------------------------
-    // TZ-safe "now" (no string parsing)
-    // Uses Intl.DateTimeFormat(timeZone) and formatToParts [web:87][web:89]
+    // TZ-safe "now" using formatToParts [web:153]
     // ----------------------------
     function getTZParts(timeZone) {
       const dtf = new Intl.DateTimeFormat('en-US', {
@@ -356,9 +409,7 @@
       });
       const parts = dtf.formatToParts(new Date());
       const map = {};
-      for (const p of parts) {
-        if (p.type !== 'literal') map[p.type] = p.value;
-      }
+      for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
       return {
         year: Number(map.year),
         month: Number(map.month), // 1-12
@@ -369,13 +420,13 @@
       };
     }
 
-    // Internal event definitions are JST (+09:00). Convert to selected TZ for display.
     function parseInternalJSTToDate(dStr, tStr) {
       return new Date(`${dStr}T${tStr}:00+09:00`);
     }
 
     function formatInTZ(date, timeZone) {
-      return new Intl.DateTimeFormat('ja-JP', {
+      const locale = (uiLang === 'ja') ? 'ja-JP' : 'en-US';
+      return new Intl.DateTimeFormat(locale, {
         timeZone,
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -383,9 +434,6 @@
       }).format(date);
     }
 
-    // ----------------------------
-    // Occurrence generator (runs on JST base dates, then we display in TZ)
-    // ----------------------------
     function getOccurrences(evt, rangeStartJST, rangeEndJST) {
       const occs = [];
       const eStart = parseInternalJSTToDate(evt.startDate, evt.startTime);
@@ -394,9 +442,7 @@
       const cycleMs = evt.cycle * 86400000;
 
       let cur = new Date(eStart);
-      while (cur.getTime() + duration < rangeStartJST.getTime()) {
-        cur = new Date(cur.getTime() + cycleMs);
-      }
+      while (cur.getTime() + duration < rangeStartJST.getTime()) cur = new Date(cur.getTime() + cycleMs);
       while (cur < rangeEndJST) {
         const end = new Date(cur.getTime() + duration);
         if (end > rangeStartJST) occs.push({ start: new Date(cur), end });
@@ -406,23 +452,18 @@
     }
 
     // ----------------------------
-    // Tooltip (pointerdown for mobile + desktop) [web:126]
+    // Tooltip
     // ----------------------------
     const tooltipEl = document.getElementById('global-tooltip');
     let tooltipPinned = false;
 
     function showTooltipForBar(barEl) {
-      const name = barEl.dataset.name;
-      const start = barEl.dataset.start;
-      const end = barEl.dataset.end;
-
-      tooltipEl.innerHTML = `<b>${name}</b><br>${start}<br>~<br>${end}`;
+      tooltipEl.innerHTML = I18N[uiLang].tooltipFmt(barEl.dataset.name, barEl.dataset.start, barEl.dataset.end);
 
       const r = barEl.getBoundingClientRect();
       let x = r.left + r.width / 2;
       let y = r.top;
 
-      // Keep within viewport
       x = Math.max(20, Math.min(window.innerWidth - 20, x));
       y = Math.max(20, y);
 
@@ -436,29 +477,75 @@
       tooltipPinned = false;
     }
 
-    // Tap anywhere else closes tooltip (mobile friendly)
     document.addEventListener('pointerdown', (e) => {
-      if (tooltipPinned) {
-        const isBar = e.target.closest && e.target.closest('.event-bar');
-        if (!isBar) hideTooltip();
-      }
+      if (!tooltipPinned) return;
+      const isBar = e.target.closest && e.target.closest('.event-bar');
+      if (!isBar) hideTooltip();
     });
 
     // ----------------------------
-    // Render
+    // DOM refs
     // ----------------------------
     const tzSelect = document.getElementById('tzSelect');
     const monthSelect = document.getElementById('startMonthSelect');
     const viewport = document.getElementById('viewport');
     const timeline = document.getElementById('timeline');
 
-    for (let i = 0; i < 12; i++) {
-      monthSelect.add(new Option(
-        new Date(2026, i, 1).toLocaleString('ja-JP', { month: 'long', year: 'numeric' }),
-        i
-      ));
+    // Restore timezone from localStorage
+    const savedTZ = localStorage.getItem(LS_TZ);
+    if (savedTZ) tzSelect.value = savedTZ;
+
+    function applyUIText() {
+      document.getElementById('titleText').textContent = I18N[uiLang].title;
+      document.getElementById('langBtn').textContent = I18N[uiLang].langBtn;
+      document.getElementById('nowBtn').textContent = I18N[uiLang].now;
     }
 
+    function rebuildMonthSelect() {
+      const prev = monthSelect.value || "0";
+      monthSelect.innerHTML = '';
+      for (let i = 0; i < 12; i++) {
+        monthSelect.add(new Option(I18N[uiLang].monthSelect(2026, i), i));
+      }
+      monthSelect.value = prev;
+    }
+
+    // ----------------------------
+    // Timeline clamp: never overlap sticky column [web:134]
+    // ----------------------------
+    function getStickyWidthPx() {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--sticky-w').trim();
+      const px = parseFloat(v);
+      return Number.isFinite(px) ? px : 140;
+    }
+
+    function updateTimeline() {
+      const tz = tzSelect.value;
+      const parts = getTZParts(tz);
+
+      const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
+      if (!cell) { timeline.style.display = 'none'; return; }
+
+      const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
+      const progress = seconds / 86400;
+
+      const cellRect = cell.getBoundingClientRect();
+      const vpRect = viewport.getBoundingClientRect();
+
+      let xInViewport = (cellRect.left - vpRect.left) + (cellRect.width * progress);
+
+      const stickyW = getStickyWidthPx();
+      if (xInViewport < stickyW) xInViewport = stickyW;
+
+      const xInContent = viewport.scrollLeft + xInViewport;
+
+      timeline.style.display = 'block';
+      timeline.style.left = `${xInContent}px`;
+    }
+
+    // ----------------------------
+    // Render calendar
+    // ----------------------------
     function render(startMonthIdx) {
       const tz = tzSelect.value;
 
@@ -467,21 +554,17 @@
       let totalDays = 0;
 
       for (let i = 0; i < 3; i++) {
-        let m = startMonthIdx + i;
-        let y = year;
+        let m = startMonthIdx + i, y = year;
         if (m > 11) { m -= 12; y++; }
         const days = new Date(y, m + 1, 0).getDate();
         months.push({ y, m, days });
         totalDays += days;
       }
 
-      // Display range (for header text only)
       const viewStartLocal = new Date(months[0].y, months[0].m, 1);
       const viewEndLocal = new Date(months[2].y, months[2].m, months[2].days);
-      document.getElementById('rangeDisplay').textContent =
-        `${viewStartLocal.toLocaleString('ja-JP', { month: 'long' })} - ${viewEndLocal.toLocaleString('ja-JP', { year: 'numeric', month: 'long' })}`;
+      document.getElementById('rangeDisplay').textContent = I18N[uiLang].range(viewStartLocal, viewEndLocal);
 
-      // Build header
       const thead = document.getElementById('calendarHeader');
       const tbody = document.getElementById('calendarBody');
       thead.innerHTML = '';
@@ -490,7 +573,7 @@
       const rowM = document.createElement('tr');
       const corner = document.createElement('th');
       corner.className = 'sticky-col header';
-      corner.textContent = 'イベント';
+      corner.textContent = I18N[uiLang].eventCol;
       corner.rowSpan = 3;
       rowM.appendChild(corner);
 
@@ -498,7 +581,7 @@
         const th = document.createElement('th');
         th.className = 'month-header-cell';
         th.colSpan = cfg.days;
-        th.textContent = new Date(cfg.y, cfg.m, 1).toLocaleString('ja-JP', { month: 'long' });
+        th.textContent = I18N[uiLang].monthLabel(cfg.y, cfg.m);
         rowM.appendChild(th);
       });
       thead.appendChild(rowM);
@@ -509,44 +592,48 @@
           const th = document.createElement('th');
           th.className = 'date-cell';
           th.textContent = d;
-
-          // dataset date (ISO-like) using calendar grid's year/month/day
-          // month is 1-12 here for easier matching.
           th.dataset.y = String(cfg.y);
           th.dataset.m = String(cfg.m + 1);
           th.dataset.d = String(d);
-
           rowD.appendChild(th);
         }
       });
       thead.appendChild(rowD);
 
       const rowW = document.createElement('tr');
-      const daysJP = ['日','月','火','水','木','金','土'];
+      const dow = I18N[uiLang].days;
       months.forEach(cfg => {
         for (let d = 1; d <= cfg.days; d++) {
           const th = document.createElement('th');
           th.className = 'day-cell';
-          th.textContent = daysJP[new Date(cfg.y, cfg.m, d).getDay()];
+          th.textContent = dow[new Date(cfg.y, cfg.m, d).getDay()];
           rowW.appendChild(th);
         }
       });
       thead.appendChild(rowW);
 
-      // For occurrence calculations, work in JST range that safely covers displayed months.
-      // (Give a little buffer.)
       const rangeStartJST = new Date(`${months[0].y}-${String(months[0].m+1).padStart(2,'0')}-01T00:00:00+09:00`);
       const last = months[2];
       const rangeEndJST = new Date(`${last.y}-${String(last.m+1).padStart(2,'0')}-${String(last.days).padStart(2,'0')}T23:59:59+09:00`);
 
-      // Body
+      function gridIndexForYMD(y, m1to12, d1to31) {
+        let idx = 0;
+        for (const cfg of months) {
+          for (let dd = 1; dd <= cfg.days; dd++) {
+            if (cfg.y === y && (cfg.m + 1) === m1to12 && dd === d1to31) return idx;
+            idx++;
+          }
+        }
+        return -1;
+      }
+
       groups.forEach(grp => {
         const gr = document.createElement('tr');
         gr.className = 'group-row';
 
         const gName = document.createElement('td');
         gName.className = 'sticky-col';
-        gName.textContent = grp.title;
+        gName.textContent = (uiLang === 'en' ? grp.title_en : grp.title);
         gr.appendChild(gName);
 
         const filler = document.createElement('td');
@@ -562,7 +649,7 @@
           nameTd.className = 'sticky-col';
           const nameDiv = document.createElement('div');
           nameDiv.className = 'event-name';
-          nameDiv.textContent = evt.name;
+          nameDiv.textContent = (uiLang === 'en' ? evt.name_en : evt.name);
           nameTd.appendChild(nameDiv);
           row.appendChild(nameTd);
 
@@ -577,33 +664,15 @@
 
           const occs = getOccurrences(evt, rangeStartJST, rangeEndJST);
 
-          // map date->index in the visible 3-month grid (by local calendar, not TZ)
-          // We do it by iterating the months in order.
-          function gridIndexForYMD(y, m1to12, d1to31) {
-            let idx = 0;
-            for (const cfg of months) {
-              for (let dd = 1; dd <= cfg.days; dd++) {
-                if (cfg.y === y && (cfg.m + 1) === m1to12 && dd === d1to31) return idx;
-                idx++;
-              }
-            }
-            return -1;
-          }
-
           occs.forEach(occ => {
-            // Use the occurrence START in JST to locate the day cell in the grid.
             const y = occ.start.getFullYear();
             const m = occ.start.getMonth() + 1;
             const d = occ.start.getDate();
-
             const startIdx = gridIndexForYMD(y, m, d);
             if (startIdx < 0) return;
 
-            // Position within the day cell
             const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
             const leftPct = (mins / 1440) * 100;
-
-            // Width in days as percentage of a single cell (may overflow into next cells)
             const durMs = occ.end - occ.start;
             const widthPct = (durMs / 86400000) * 100;
 
@@ -613,21 +682,17 @@
             bar.style.left = `${leftPct}%`;
             bar.style.width = `calc(${widthPct}% - 1px)`;
 
-            // Tooltip data in selected TZ
-            bar.dataset.name = evt.name;
+            bar.dataset.name = (uiLang === 'en' ? evt.name_en : evt.name);
             bar.dataset.start = formatInTZ(occ.start, tz);
             bar.dataset.end = formatInTZ(occ.end, tz);
 
-            // Pointer-based interaction: works for mouse + touch [web:126]
             bar.addEventListener('pointerenter', (e) => {
-              // Desktop hover: show (but don't pin)
               if (e.pointerType === 'mouse' && !tooltipPinned) showTooltipForBar(bar);
             });
             bar.addEventListener('pointerleave', (e) => {
               if (e.pointerType === 'mouse' && !tooltipPinned) tooltipEl.style.opacity = '0';
             });
             bar.addEventListener('pointerdown', (e) => {
-              // Mobile tap: pin tooltip
               e.preventDefault();
               tooltipPinned = true;
               showTooltipForBar(bar);
@@ -639,52 +704,14 @@
         });
       });
 
-      updateTimeline(); // position line after rendering
+      updateTimeline();
     }
 
-    // ----------------------------
-    // Timeline: place line based on header cell geometry + time-of-day
-    // ----------------------------
-    function updateTimeline() {
-      const tz = tzSelect.value;
-      const parts = getTZParts(tz);
-
-      // Find the header day cell corresponding to "today" in the selected TZ.
-      const selector = `.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`;
-      const cell = document.querySelector(selector);
-
-      if (!cell) {
-        timeline.style.display = 'none';
-        return;
-      }
-
-      timeline.style.display = 'block';
-
-      // progress through the day (0..1)
-      const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
-      const progress = seconds / 86400;
-
-      // Compute x based on actual cell position relative to the scrollable content.
-      // offsetLeft is relative to offsetParent; we use bounding rect + scrollLeft to stabilize across browsers.
-      const cellRect = cell.getBoundingClientRect();
-      const vpRect = viewport.getBoundingClientRect();
-
-      const xInViewport = (cellRect.left - vpRect.left) + (cellRect.width * progress);
-      const xInContent = viewport.scrollLeft + xInViewport;
-
-      timeline.style.left = `${xInContent}px`;
-    }
-
-    // ----------------------------
-    // Now button: set month based on TZ date parts (no drifting)
-    // ----------------------------
     function goToNow() {
-      const tz = tzSelect.value;
-      const parts = getTZParts(tz);
-      monthSelect.value = String(parts.month - 1); // monthSelect uses 0-11
+      const parts = getTZParts(tzSelect.value);
+      monthSelect.value = String(parts.month - 1);
       render(Number(monthSelect.value));
 
-      // Scroll to center the timeline
       setTimeout(() => {
         updateTimeline();
         if (timeline.style.display !== 'none') {
@@ -695,26 +722,42 @@
     }
 
     // ----------------------------
-    // Wiring
+    // UI events
     // ----------------------------
-    document.getElementById('btnNow').addEventListener('click', goToNow);
-    tzSelect.addEventListener('change', () => {
+    document.getElementById('langBtn').addEventListener('click', () => {
+      uiLang = (uiLang === 'ja') ? 'en' : 'ja';
+      localStorage.setItem(LS_LANG, uiLang); // persist [web:147]
       tooltipEl.style.opacity = '0';
       tooltipPinned = false;
-      render(Number(monthSelect.value));
+      applyUIText();
+      rebuildMonthSelect();
+      render(Number(monthSelect.value || 0));
     });
+
+    tzSelect.addEventListener('change', () => {
+      localStorage.setItem(LS_TZ, tzSelect.value); // persist [web:147]
+      tooltipEl.style.opacity = '0';
+      tooltipPinned = false;
+      render(Number(monthSelect.value || 0));
+    });
+
     monthSelect.addEventListener('change', () => {
       tooltipEl.style.opacity = '0';
       tooltipPinned = false;
-      render(Number(monthSelect.value));
+      render(Number(monthSelect.value || 0));
     });
 
-    // keep timeline updated when scrolling (position must account for scrollLeft)
+    document.getElementById('nowBtn').addEventListener('click', goToNow);
+
     viewport.addEventListener('scroll', () => {
       if (timeline.style.display !== 'none') updateTimeline();
     }, { passive: true });
 
-    // init
+    // ----------------------------
+    // Init
+    // ----------------------------
+    applyUIText();
+    rebuildMonthSelect();
     goToNow();
     setInterval(updateTimeline, 30 * 1000);
   </script>
