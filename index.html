@@ -1,358 +1,722 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Last Z Event Scheduler</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Last Z Event Scheduler</title>
 
-        :root {
-            --bg-body: #000000;
-            --bg-panel: #0a0a0a;
-            --bg-header: #111111;
-            --border-color: #333333;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-            --accent-color: #00e5ff;
-            --timeline-color: #ff0055;
-            --shell-max-width: 1600px;
-            --shell-pad: clamp(12px, 2vw, 24px);
-        }
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
-        * { box-sizing: border-box; }
+    :root{
+      --bg-body:#000;
+      --bg-panel:#0a0a0a;
+      --bg-header:#111;
+      --border:#333;
+      --text:#fff;
+      --muted:#888;
+      --accent:#00e5ff;
+      --timeline:#ff0055;
 
-        body {
-            margin: 0;
-            padding: var(--shell-pad);
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow: hidden;
-        }
+      --shell-max:1600px;
+      --shell-pad:clamp(12px,2vw,24px);
 
-        .app-shell {
-            width: min(var(--shell-max-width), 100%);
-            height: calc(100vh - (2 * var(--shell-pad)));
-            margin: 0 auto;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid #1f1f1f;
-            background: #000;
-            box-shadow: 0 20px 80px rgba(0,0,0,0.65);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+      --sticky-w:140px;
+      --cell-w:30px;
+    }
 
-        .header-container {
-            padding: 12px 20px;
-            background: var(--bg-body);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            z-index: 50;
-            height: 70px; /* Taller for TZ select */
-            flex: 0 0 auto;
-        }
+    *{ box-sizing:border-box; }
 
-        .title-block h1 { margin: 0; font-size: 16px; font-weight: 700; color: #fff; }
-        .title-block p { margin: 2px 0 0; font-size: 10px; color: var(--text-secondary); }
+    body{
+      margin:0;
+      padding:var(--shell-pad);
+      font-family:'Inter','Noto Sans JP',sans-serif;
+      background:var(--bg-body);
+      color:var(--text);
+      min-height:100vh;
+      overflow:hidden;
+    }
 
-        .controls { display: flex; gap: 8px; align-items: center; }
+    .app-shell{
+      width:min(var(--shell-max),100%);
+      height:calc(100vh - (2 * var(--shell-pad)));
+      margin:0 auto;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid #1f1f1f;
+      box-shadow:0 20px 80px rgba(0,0,0,.65);
+      background:#000;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+    }
 
-        select, button {
-            background: #222;
-            color: white;
-            border: 1px solid #444;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        
-        #tzSelect { border-color: var(--accent-color); color: var(--accent-color); }
-        button { background: var(--accent-color); color: black; font-weight: 700; border: none; }
+    .header-container{
+      padding:12px 16px;
+      background:#000;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      z-index:60;
+      flex:0 0 auto;
+    }
 
-        .viewport {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: auto;
-            position: relative;
-            background: var(--bg-panel);
-        }
+    .title-block h1{
+      margin:0;
+      font-size:16px;
+      font-weight:700;
+      line-height:1.1;
+    }
+    .title-block p{
+      margin:2px 0 0;
+      font-size:10px;
+      color:var(--muted);
+    }
 
-        table { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
-        th, td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 0; }
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
 
-        thead { position: sticky; top: 0; z-index: 40; background: var(--bg-header); }
+    select, button{
+      background:#222;
+      color:#fff;
+      border:1px solid #444;
+      padding:6px 10px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+    }
+    #tzSelect{
+      border-color:var(--accent);
+      color:var(--accent);
+      font-weight:600;
+    }
+    button{
+      background:var(--accent);
+      color:#000;
+      font-weight:800;
+      border:none;
+    }
 
-        .sticky-col {
-            position: sticky; left: 0; width: 140px; min-width: 140px;
-            z-index: 45; background: var(--bg-panel); border-right: 2px solid #555;
-        }
+    .viewport{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      position:relative;
+      background:var(--bg-panel);
+    }
 
-        .sticky-col.header { z-index: 50; background: var(--bg-header); font-size: 11px; text-align: center; }
-        .month-header-cell { color: var(--accent-color); font-weight: 700; font-size: 12px; padding: 6px 0; text-align: center; }
-        .date-cell { width: 28px; text-align: center; font-size: 11px; color: #888; height: 24px; }
-        .day-cell { width: 28px; text-align: center; font-size: 9px; color: #555; height: 18px; }
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+      width:max-content;
+    }
+    th, td{
+      border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+      padding:0;
+    }
 
-        .group-row td { background: #151515; padding: 5px 10px; font-size: 10px; font-weight: 700; color: #aaa; }
-        .group-row td:first-child { position: sticky; left: 0; z-index: 35; background: #151515; }
+    thead{
+      position:sticky;
+      top:0;
+      z-index:40;
+      background:var(--bg-header);
+    }
 
-        .event-row { height: 32px; }
-        .event-name { font-size: 10px; color: #eee; padding: 0 8px; display: flex; align-items: center; justify-content: center; height: 32px; }
-        .grid-cell { background: var(--bg-panel); position: relative; }
+    .sticky-col{
+      position:sticky;
+      left:0;
+      width:var(--sticky-w);
+      min-width:var(--sticky-w);
+      max-width:var(--sticky-w);
+      background:var(--bg-panel);
+      border-right:2px solid #555;
+      z-index:45;
+    }
+    .sticky-col.header{
+      background:var(--bg-header);
+      z-index:55;
+      text-align:center;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:700;
+    }
 
-        .event-bar {
-            position: absolute; top: 4px; bottom: 4px; border-radius: 4px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); cursor: pointer; z-index: 10;
-            touch-action: manipulation;
-        }
+    .month-header-cell{
+      color:var(--accent);
+      font-weight:800;
+      font-size:13px;
+      text-align:center;
+      padding:8px 0;
+      background:var(--bg-header);
+    }
+    .date-cell{
+      width:var(--cell-w);
+      text-align:center;
+      font-size:11px;
+      color:#bbb;
+      height:26px;
+      background:var(--bg-header);
+    }
+    .day-cell{
+      width:var(--cell-w);
+      text-align:center;
+      font-size:9px;
+      color:#666;
+      height:18px;
+      background:var(--bg-header);
+    }
 
-        #global-tooltip {
-            position: fixed; top: 0; left: 0; background: rgba(0, 0, 0, 0.95);
-            border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px;
-            font-size: 11px; text-align: center; pointer-events: none; z-index: 9999;
-            opacity: 0; transform: translate(-50%, -100%); margin-top: -8px;
-        }
+    .group-row td{
+      background:#151515;
+      padding:6px 12px;
+      font-size:11px;
+      font-weight:800;
+      color:#aaa;
+    }
+    .group-row td:first-child{
+      position:sticky;
+      left:0;
+      z-index:46; /* above grid cells */
+      background:#151515;
+      box-shadow:2px 0 8px rgba(0,0,0,.6);
+    }
 
-        #timeline {
-            position: absolute; top: 0; bottom: 0; width: 2px;
-            background: var(--timeline-color); box-shadow: 0 0 10px var(--timeline-color);
-            z-index: 100; pointer-events: none; display: none;
-        }
-        
-        #timeline::after {
-            content: ''; position: absolute; top: 0; left: -4px; width: 10px; height: 10px;
-            background: var(--timeline-color); border-radius: 50%;
-        }
+    .event-row{ height:34px; }
+    .event-name{
+      height:34px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      color:#eee;
+      padding:0 10px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-align:center;
+    }
 
-        @media (max-width: 768px) {
-            .sticky-col { width: 100px; min-width: 100px; }
-            .date-cell, .day-cell { width: 24px; }
-        }
-    </style>
+    .grid-cell{
+      position:relative;
+      background:var(--bg-panel);
+    }
+
+    .event-bar{
+      position:absolute;
+      top:4px;
+      bottom:4px;
+      border-radius:4px;
+      box-shadow:0 4px 12px rgba(0,0,0,.45);
+      cursor:pointer;
+      z-index:10;
+      touch-action:manipulation; /* allow taps; don’t force double-tap zoom */
+    }
+
+    /* Make tiny bars easier to tap (bigger hit target without changing visuals) */
+    .event-bar::before{
+      content:"";
+      position:absolute;
+      left:-6px; right:-6px; top:-10px; bottom:-10px;
+      background:transparent;
+    }
+
+    #global-tooltip{
+      position:fixed;
+      top:0; left:0;
+      transform:translate(-50%, -100%);
+      background:rgba(0,0,0,.95);
+      border:1px solid #444;
+      color:#fff;
+      padding:10px 12px;
+      border-radius:8px;
+      font-size:12px;
+      line-height:1.3;
+      text-align:center;
+      pointer-events:none;
+      z-index:9999;
+      opacity:0;
+      transition:opacity .12s ease;
+      max-width:min(320px, 90vw);
+      box-shadow:0 10px 24px rgba(0,0,0,.8);
+      margin-top:-10px;
+    }
+
+    #timeline{
+      position:absolute;
+      top:0;
+      bottom:0;
+      width:2px;
+      background:var(--timeline);
+      box-shadow:0 0 14px var(--timeline);
+      z-index:80;
+      pointer-events:none;
+      display:none;
+    }
+    #timeline::after{
+      content:"";
+      position:absolute;
+      top:0;
+      left:-4px;
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--timeline);
+      box-shadow:0 0 14px var(--timeline);
+    }
+
+    @media (max-width: 768px){
+      :root{
+        --sticky-w:110px;
+        --cell-w:26px;
+      }
+      .header-container{ padding:10px 12px; }
+    }
+  </style>
 </head>
+
 <body>
-    <div class="app-shell">
-        <div class="header-container">
-            <div class="title-block">
-                <h1>Last Z Scheduler</h1>
-                <p id="rangeDisplay">Loading...</p>
-            </div>
-            <div class="controls">
-                <select id="tzSelect"></select>
-                <select id="startMonthSelect"></select>
-                <button onclick="goToNow()">今日</button>
-            </div>
-        </div>
+  <div class="app-shell">
+    <div class="header-container">
+      <div class="title-block">
+        <h1>Last Z Scheduler</h1>
+        <p id="rangeDisplay">Loading...</p>
+      </div>
 
-        <div class="viewport" id="viewport">
-            <div id="timeline"></div>
-            <table id="calendarTable">
-                <thead id="calendarHeader"></thead>
-                <tbody id="calendarBody"></tbody>
-            </table>
-        </div>
+      <div class="controls">
+        <select id="tzSelect">
+          <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">America/New_York</option>
+          <option value="Europe/London">Europe/London</option>
+        </select>
+
+        <select id="startMonthSelect"></select>
+        <button id="btnNow" type="button">今日</button>
+      </div>
     </div>
-    <div id="global-tooltip"></div>
 
-    <script>
-        const groups = [
-            {
-                title: '週次イベント',
-                events: [
-                    { name: '幸福自選宝庫', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
-                    { name: 'ラッキー抽選', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
-                    { name: '弾丸のやつ', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
-                    { name: 'ラッキー商店', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
-                ]
-            },
-            {
-                title: 'SvS（準決勝）',
-                events: [
-                    { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
-                    { name: 'SvS本戦', color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
-                ]
+    <div class="viewport" id="viewport">
+      <div id="timeline"></div>
+      <table id="calendarTable">
+        <thead id="calendarHeader"></thead>
+        <tbody id="calendarBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="global-tooltip"></div>
+
+  <script>
+    // ----------------------------
+    // Data
+    // ----------------------------
+    const groups = [
+      {
+        title: '週次イベント',
+        events: [
+          { name: '幸福自選宝庫', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー抽選', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+          { name: '弾丸のやつ', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー商店', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
+        ]
+      },
+      {
+        title: 'SvS（準決勝）',
+        events: [
+          { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
+          { name: 'SvS本戦', color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 }
+        ]
+      },
+      {
+        title: 'SvS（決勝）',
+        events: [
+          { name: 'SvS侵略権争い', color: 'linear-gradient(90deg, #89f7fe, #66a6ff)', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
+          { name: 'SvS本戦', color: 'linear-gradient(90deg, #cd9cf2, #f6f3ff)', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
+        ]
+      }
+    ];
+
+    // ----------------------------
+    // TZ-safe "now" (no string parsing)
+    // Uses Intl.DateTimeFormat(timeZone) and formatToParts [web:87][web:89]
+    // ----------------------------
+    function getTZParts(timeZone) {
+      const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      });
+      const parts = dtf.formatToParts(new Date());
+      const map = {};
+      for (const p of parts) {
+        if (p.type !== 'literal') map[p.type] = p.value;
+      }
+      return {
+        year: Number(map.year),
+        month: Number(map.month), // 1-12
+        day: Number(map.day),
+        hour: Number(map.hour),
+        minute: Number(map.minute),
+        second: Number(map.second)
+      };
+    }
+
+    // Internal event definitions are JST (+09:00). Convert to selected TZ for display.
+    function parseInternalJSTToDate(dStr, tStr) {
+      return new Date(`${dStr}T${tStr}:00+09:00`);
+    }
+
+    function formatInTZ(date, timeZone) {
+      return new Intl.DateTimeFormat('ja-JP', {
+        timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      }).format(date);
+    }
+
+    // ----------------------------
+    // Occurrence generator (runs on JST base dates, then we display in TZ)
+    // ----------------------------
+    function getOccurrences(evt, rangeStartJST, rangeEndJST) {
+      const occs = [];
+      const eStart = parseInternalJSTToDate(evt.startDate, evt.startTime);
+      const eEnd = parseInternalJSTToDate(evt.endDate, evt.endTime);
+      const duration = eEnd - eStart;
+      const cycleMs = evt.cycle * 86400000;
+
+      let cur = new Date(eStart);
+      while (cur.getTime() + duration < rangeStartJST.getTime()) {
+        cur = new Date(cur.getTime() + cycleMs);
+      }
+      while (cur < rangeEndJST) {
+        const end = new Date(cur.getTime() + duration);
+        if (end > rangeStartJST) occs.push({ start: new Date(cur), end });
+        cur = new Date(cur.getTime() + cycleMs);
+      }
+      return occs;
+    }
+
+    // ----------------------------
+    // Tooltip (pointerdown for mobile + desktop) [web:126]
+    // ----------------------------
+    const tooltipEl = document.getElementById('global-tooltip');
+    let tooltipPinned = false;
+
+    function showTooltipForBar(barEl) {
+      const name = barEl.dataset.name;
+      const start = barEl.dataset.start;
+      const end = barEl.dataset.end;
+
+      tooltipEl.innerHTML = `<b>${name}</b><br>${start}<br>~<br>${end}`;
+
+      const r = barEl.getBoundingClientRect();
+      let x = r.left + r.width / 2;
+      let y = r.top;
+
+      // Keep within viewport
+      x = Math.max(20, Math.min(window.innerWidth - 20, x));
+      y = Math.max(20, y);
+
+      tooltipEl.style.left = `${x}px`;
+      tooltipEl.style.top = `${y}px`;
+      tooltipEl.style.opacity = '1';
+    }
+
+    function hideTooltip() {
+      tooltipEl.style.opacity = '0';
+      tooltipPinned = false;
+    }
+
+    // Tap anywhere else closes tooltip (mobile friendly)
+    document.addEventListener('pointerdown', (e) => {
+      if (tooltipPinned) {
+        const isBar = e.target.closest && e.target.closest('.event-bar');
+        if (!isBar) hideTooltip();
+      }
+    });
+
+    // ----------------------------
+    // Render
+    // ----------------------------
+    const tzSelect = document.getElementById('tzSelect');
+    const monthSelect = document.getElementById('startMonthSelect');
+    const viewport = document.getElementById('viewport');
+    const timeline = document.getElementById('timeline');
+
+    for (let i = 0; i < 12; i++) {
+      monthSelect.add(new Option(
+        new Date(2026, i, 1).toLocaleString('ja-JP', { month: 'long', year: 'numeric' }),
+        i
+      ));
+    }
+
+    function render(startMonthIdx) {
+      const tz = tzSelect.value;
+
+      const year = 2026;
+      const months = [];
+      let totalDays = 0;
+
+      for (let i = 0; i < 3; i++) {
+        let m = startMonthIdx + i;
+        let y = year;
+        if (m > 11) { m -= 12; y++; }
+        const days = new Date(y, m + 1, 0).getDate();
+        months.push({ y, m, days });
+        totalDays += days;
+      }
+
+      // Display range (for header text only)
+      const viewStartLocal = new Date(months[0].y, months[0].m, 1);
+      const viewEndLocal = new Date(months[2].y, months[2].m, months[2].days);
+      document.getElementById('rangeDisplay').textContent =
+        `${viewStartLocal.toLocaleString('ja-JP', { month: 'long' })} - ${viewEndLocal.toLocaleString('ja-JP', { year: 'numeric', month: 'long' })}`;
+
+      // Build header
+      const thead = document.getElementById('calendarHeader');
+      const tbody = document.getElementById('calendarBody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      const rowM = document.createElement('tr');
+      const corner = document.createElement('th');
+      corner.className = 'sticky-col header';
+      corner.textContent = 'イベント';
+      corner.rowSpan = 3;
+      rowM.appendChild(corner);
+
+      months.forEach(cfg => {
+        const th = document.createElement('th');
+        th.className = 'month-header-cell';
+        th.colSpan = cfg.days;
+        th.textContent = new Date(cfg.y, cfg.m, 1).toLocaleString('ja-JP', { month: 'long' });
+        rowM.appendChild(th);
+      });
+      thead.appendChild(rowM);
+
+      const rowD = document.createElement('tr');
+      months.forEach(cfg => {
+        for (let d = 1; d <= cfg.days; d++) {
+          const th = document.createElement('th');
+          th.className = 'date-cell';
+          th.textContent = d;
+
+          // dataset date (ISO-like) using calendar grid's year/month/day
+          // month is 1-12 here for easier matching.
+          th.dataset.y = String(cfg.y);
+          th.dataset.m = String(cfg.m + 1);
+          th.dataset.d = String(d);
+
+          rowD.appendChild(th);
+        }
+      });
+      thead.appendChild(rowD);
+
+      const rowW = document.createElement('tr');
+      const daysJP = ['日','月','火','水','木','金','土'];
+      months.forEach(cfg => {
+        for (let d = 1; d <= cfg.days; d++) {
+          const th = document.createElement('th');
+          th.className = 'day-cell';
+          th.textContent = daysJP[new Date(cfg.y, cfg.m, d).getDay()];
+          rowW.appendChild(th);
+        }
+      });
+      thead.appendChild(rowW);
+
+      // For occurrence calculations, work in JST range that safely covers displayed months.
+      // (Give a little buffer.)
+      const rangeStartJST = new Date(`${months[0].y}-${String(months[0].m+1).padStart(2,'0')}-01T00:00:00+09:00`);
+      const last = months[2];
+      const rangeEndJST = new Date(`${last.y}-${String(last.m+1).padStart(2,'0')}-${String(last.days).padStart(2,'0')}T23:59:59+09:00`);
+
+      // Body
+      groups.forEach(grp => {
+        const gr = document.createElement('tr');
+        gr.className = 'group-row';
+
+        const gName = document.createElement('td');
+        gName.className = 'sticky-col';
+        gName.textContent = grp.title;
+        gr.appendChild(gName);
+
+        const filler = document.createElement('td');
+        filler.colSpan = totalDays;
+        gr.appendChild(filler);
+        tbody.appendChild(gr);
+
+        grp.events.forEach(evt => {
+          const row = document.createElement('tr');
+          row.className = 'event-row';
+
+          const nameTd = document.createElement('td');
+          nameTd.className = 'sticky-col';
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'event-name';
+          nameDiv.textContent = evt.name;
+          nameTd.appendChild(nameDiv);
+          row.appendChild(nameTd);
+
+          const cells = [];
+          for (let i = 0; i < totalDays; i++) {
+            const td = document.createElement('td');
+            td.className = 'grid-cell';
+            row.appendChild(td);
+            cells.push(td);
+          }
+          tbody.appendChild(row);
+
+          const occs = getOccurrences(evt, rangeStartJST, rangeEndJST);
+
+          // map date->index in the visible 3-month grid (by local calendar, not TZ)
+          // We do it by iterating the months in order.
+          function gridIndexForYMD(y, m1to12, d1to31) {
+            let idx = 0;
+            for (const cfg of months) {
+              for (let dd = 1; dd <= cfg.days; dd++) {
+                if (cfg.y === y && (cfg.m + 1) === m1to12 && dd === d1to31) return idx;
+                idx++;
+              }
             }
-        ];
+            return -1;
+          }
 
-        let currentTZ = "Asia/Tokyo";
-        const tzSelect = document.getElementById('tzSelect');
-        ["Asia/Tokyo", "UTC", "America/New_York", "Europe/London"].forEach(tz => {
-            const opt = new Option(tz, tz);
-            if(tz === currentTZ) opt.selected = true;
-            tzSelect.add(opt);
+          occs.forEach(occ => {
+            // Use the occurrence START in JST to locate the day cell in the grid.
+            const y = occ.start.getFullYear();
+            const m = occ.start.getMonth() + 1;
+            const d = occ.start.getDate();
+
+            const startIdx = gridIndexForYMD(y, m, d);
+            if (startIdx < 0) return;
+
+            // Position within the day cell
+            const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
+            const leftPct = (mins / 1440) * 100;
+
+            // Width in days as percentage of a single cell (may overflow into next cells)
+            const durMs = occ.end - occ.start;
+            const widthPct = (durMs / 86400000) * 100;
+
+            const bar = document.createElement('div');
+            bar.className = 'event-bar';
+            bar.style.background = evt.color;
+            bar.style.left = `${leftPct}%`;
+            bar.style.width = `calc(${widthPct}% - 1px)`;
+
+            // Tooltip data in selected TZ
+            bar.dataset.name = evt.name;
+            bar.dataset.start = formatInTZ(occ.start, tz);
+            bar.dataset.end = formatInTZ(occ.end, tz);
+
+            // Pointer-based interaction: works for mouse + touch [web:126]
+            bar.addEventListener('pointerenter', (e) => {
+              // Desktop hover: show (but don't pin)
+              if (e.pointerType === 'mouse' && !tooltipPinned) showTooltipForBar(bar);
+            });
+            bar.addEventListener('pointerleave', (e) => {
+              if (e.pointerType === 'mouse' && !tooltipPinned) tooltipEl.style.opacity = '0';
+            });
+            bar.addEventListener('pointerdown', (e) => {
+              // Mobile tap: pin tooltip
+              e.preventDefault();
+              tooltipPinned = true;
+              showTooltipForBar(bar);
+            }, { passive: false });
+
+            cells[startIdx].style.overflow = 'visible';
+            cells[startIdx].appendChild(bar);
+          });
         });
+      });
 
-        function getNowInTZ() {
-            return new Date(new Date().toLocaleString("en-US", {timeZone: currentTZ}));
+      updateTimeline(); // position line after rendering
+    }
+
+    // ----------------------------
+    // Timeline: place line based on header cell geometry + time-of-day
+    // ----------------------------
+    function updateTimeline() {
+      const tz = tzSelect.value;
+      const parts = getTZParts(tz);
+
+      // Find the header day cell corresponding to "today" in the selected TZ.
+      const selector = `.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`;
+      const cell = document.querySelector(selector);
+
+      if (!cell) {
+        timeline.style.display = 'none';
+        return;
+      }
+
+      timeline.style.display = 'block';
+
+      // progress through the day (0..1)
+      const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
+      const progress = seconds / 86400;
+
+      // Compute x based on actual cell position relative to the scrollable content.
+      // offsetLeft is relative to offsetParent; we use bounding rect + scrollLeft to stabilize across browsers.
+      const cellRect = cell.getBoundingClientRect();
+      const vpRect = viewport.getBoundingClientRect();
+
+      const xInViewport = (cellRect.left - vpRect.left) + (cellRect.width * progress);
+      const xInContent = viewport.scrollLeft + xInViewport;
+
+      timeline.style.left = `${xInContent}px`;
+    }
+
+    // ----------------------------
+    // Now button: set month based on TZ date parts (no drifting)
+    // ----------------------------
+    function goToNow() {
+      const tz = tzSelect.value;
+      const parts = getTZParts(tz);
+      monthSelect.value = String(parts.month - 1); // monthSelect uses 0-11
+      render(Number(monthSelect.value));
+
+      // Scroll to center the timeline
+      setTimeout(() => {
+        updateTimeline();
+        if (timeline.style.display !== 'none') {
+          const x = parseFloat(timeline.style.left) || 0;
+          viewport.scrollTo({ left: Math.max(0, x - viewport.clientWidth / 2), behavior: 'smooth' });
         }
+      }, 150);
+    }
 
-        function parseToViewTZ(dStr, tStr) {
-            // Internal dates are defined in JST (as per your previous contexts)
-            // We convert them to whatever TZ is selected
-            const jstDate = new Date(`${dStr}T${tStr}:00+09:00`); 
-            return new Date(jstDate.toLocaleString("en-US", {timeZone: currentTZ}));
-        }
+    // ----------------------------
+    // Wiring
+    // ----------------------------
+    document.getElementById('btnNow').addEventListener('click', goToNow);
+    tzSelect.addEventListener('change', () => {
+      tooltipEl.style.opacity = '0';
+      tooltipPinned = false;
+      render(Number(monthSelect.value));
+    });
+    monthSelect.addEventListener('change', () => {
+      tooltipEl.style.opacity = '0';
+      tooltipPinned = false;
+      render(Number(monthSelect.value));
+    });
 
-        const startMonthSelect = document.getElementById('startMonthSelect');
-        for (let i = 0; i < 12; i++) {
-            const opt = new Option(new Date(2026, i, 1).toLocaleString('ja-JP', {month:'long', year:'numeric'}), i);
-            startMonthSelect.add(opt);
-        }
+    // keep timeline updated when scrolling (position must account for scrollLeft)
+    viewport.addEventListener('scroll', () => {
+      if (timeline.style.display !== 'none') updateTimeline();
+    }, { passive: true });
 
-        const tooltipEl = document.getElementById('global-tooltip');
-        function showTooltip(e, name, start, end) {
-            const rect = e.target.closest('.event-bar').getBoundingClientRect();
-            tooltipEl.innerHTML = `<b>${name}</b><br>${start}<br>↓<br>${end}`;
-            tooltipEl.style.left = `${rect.left + rect.width/2}px`;
-            tooltipEl.style.top = `${rect.top}px`;
-            tooltipEl.style.opacity = '1';
-        }
-
-        function render(startMonthIdx) {
-            currentTZ = tzSelect.value;
-            const year = 2026;
-            const monthConfigs = [];
-            let totalDays = 0;
-
-            for (let i = 0; i < 3; i++) {
-                let m = startMonthIdx + i, y = year;
-                if (m > 11) { m -= 12; y++; }
-                const days = new Date(y, m+1, 0).getDate();
-                monthConfigs.push({ year: y, month: m, days: days });
-                totalDays += days;
-            }
-
-            const viewStart = new Date(monthConfigs[0].year, monthConfigs[0].month, 1);
-            const viewEnd = new Date(monthConfigs[2].year, monthConfigs[2].month, monthConfigs[2].days, 23, 59);
-
-            const thead = document.getElementById('calendarHeader');
-            const tbody = document.getElementById('calendarBody');
-            thead.innerHTML = tbody.innerHTML = '';
-
-            const rowM = document.createElement('tr');
-            const corner = document.createElement('th');
-            corner.className = 'sticky-col header'; corner.textContent = 'イベント'; corner.rowSpan = 3;
-            rowM.appendChild(corner);
-
-            monthConfigs.forEach(cfg => {
-                const th = document.createElement('th');
-                th.className = 'month-header-cell'; th.colSpan = cfg.days;
-                th.textContent = new Date(cfg.year, cfg.month).toLocaleString('ja-JP', {month:'long'});
-                rowM.appendChild(th);
-            });
-            thead.appendChild(rowM);
-
-            const rowD = document.createElement('tr');
-            monthConfigs.forEach(cfg => {
-                for(let d=1; d<=cfg.days; d++) {
-                    const th = document.createElement('th'); th.className = 'date-cell'; th.textContent = d;
-                    rowD.appendChild(th);
-                }
-            });
-            thead.appendChild(rowD);
-
-            const rowW = document.createElement('tr');
-            const daysJP = ['日','月','火','水','木','金','土'];
-            monthConfigs.forEach(cfg => {
-                for(let d=1; d<=cfg.days; d++) {
-                    const date = new Date(cfg.year, cfg.month, d);
-                    const th = document.createElement('th'); th.className = 'day-cell'; th.textContent = daysJP[date.getDay()];
-                    rowW.appendChild(th);
-                }
-            });
-            thead.appendChild(rowW);
-
-            groups.forEach(grp => {
-                const rowG = document.createElement('tr'); rowG.className = 'group-row';
-                const tdG = document.createElement('td'); tdG.className = 'sticky-col'; tdG.textContent = grp.title;
-                rowG.appendChild(tdG);
-                const fillTd = document.createElement('td'); fillTd.colSpan = totalDays; rowG.appendChild(fillTd);
-                tbody.appendChild(rowG);
-
-                grp.events.forEach(evt => {
-                    const row = document.createElement('tr'); row.className = 'event-row';
-                    const nameTd = document.createElement('td'); nameTd.className = 'sticky-col';
-                    const nameDiv = document.createElement('div'); nameDiv.className = 'event-name'; nameDiv.textContent = evt.name;
-                    nameTd.appendChild(nameDiv); row.appendChild(nameTd);
-
-                    const dayCells = [];
-                    monthConfigs.forEach(cfg => {
-                        for(let d=1; d<=cfg.days; d++) {
-                            const td = document.createElement('td'); td.className = 'grid-cell';
-                            row.appendChild(td); dayCells.push(td);
-                        }
-                    });
-                    tbody.appendChild(row);
-
-                    // Occurrences calculated based on converted TZ
-                    const eStart = parseToViewTZ(evt.startDate, evt.startTime);
-                    const eEnd = parseToViewTZ(evt.endDate, evt.endTime);
-                    const dur = eEnd - eStart;
-                    const cycleMs = evt.cycle * 86400000;
-
-                    let curr = new Date(eStart);
-                    while (curr.getTime() + dur < viewStart.getTime()) curr = new Date(curr.getTime() + cycleMs);
-                    
-                    while (curr < viewEnd) {
-                        const occEnd = new Date(curr.getTime() + dur);
-                        if (occEnd > viewStart) {
-                            const startOffset = Math.max(0, curr - viewStart);
-                            const startDayIdx = Math.floor(startOffset / 86400000);
-                            if (startDayIdx < dayCells.length) {
-                                const bar = document.createElement('div');
-                                bar.className = 'event-bar';
-                                bar.style.background = evt.color;
-                                const leftInDay = ((curr.getHours() * 60 + curr.getMinutes()) / 1440) * 100;
-                                bar.style.left = `${Math.max(0, startDayIdx === Math.floor((curr - viewStart)/86400000) ? leftInDay : 0)}%`;
-                                bar.style.width = `calc(${(dur / 86400000) * 100}% - 1px)`;
-                                
-                                bar.addEventListener('mouseenter', (e) => showTooltip(e, evt.name, curr.toLocaleString('ja-JP'), occEnd.toLocaleString('ja-JP')));
-                                bar.addEventListener('mouseleave', () => tooltipEl.style.opacity = '0');
-                                dayCells[startDayIdx].style.overflow = 'visible';
-                                dayCells[startDayIdx].appendChild(bar);
-                            }
-                        }
-                        curr = new Date(curr.getTime() + cycleMs);
-                    }
-                });
-            });
-            updateTimeline(viewStart, viewEnd);
-        }
-
-        function updateTimeline(viewStart, viewEnd) {
-            const now = getNowInTZ();
-            const tl = document.getElementById('timeline');
-            if (now >= viewStart && now <= viewEnd) {
-                tl.style.display = 'block';
-                const pct = (now - viewStart) / (viewEnd - viewStart);
-                const totalDays = (viewEnd - viewStart) / 86400000;
-                const stickyWidth = window.innerWidth <= 768 ? 100 : 140;
-                const cellWidth = window.innerWidth <= 768 ? 24 : 28;
-                tl.style.left = `${stickyWidth + (totalDays * cellWidth * pct)}px`;
-            } else { tl.style.display = 'none'; }
-        }
-
-        function goToNow() {
-            const now = getNowInTZ();
-            startMonthSelect.value = now.getMonth();
-            render(now.getMonth());
-            setTimeout(() => {
-                const tl = document.getElementById('timeline');
-                if (tl.style.display !== 'none') {
-                    document.getElementById('viewport').scrollTo({left: parseInt(tl.style.left) - (window.innerWidth / 2), behavior: 'smooth'});
-                }
-            }, 100);
-        }
-
-        tzSelect.onchange = startMonthSelect.onchange = () => render(parseInt(startMonthSelect.value));
-        goToNow();
-        setInterval(() => updateTimeline(), 60000);
-    </script>
+    // init
+    goToNow();
+    setInterval(updateTimeline, 30 * 1000);
+  </script>
 </body>
 </html>
