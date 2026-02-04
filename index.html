@@ -75,6 +75,14 @@
       color:var(--muted);
     }
 
+    #current-time{
+      margin:4px 0 0;
+      font-size:14px;
+      font-weight:700;
+      color:var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
     .controls{
       display:flex;
       gap:8px;
@@ -189,7 +197,6 @@
       background:var(--bg-header);
     }
 
-    /* Make group titles stand out */
     .group-row td{
       background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
       padding:10px 12px;
@@ -291,7 +298,6 @@
       box-shadow:0 0 14px var(--timeline);
     }
 
-    /* Time label on top of red line */
     #timeline-label{
       position:absolute;
       top:-30px;
@@ -312,6 +318,7 @@
       .header-container{ padding:10px 12px; }
       .group-row td{ font-size:11px; padding:8px 10px; }
       #timeline-label{ font-size:10px; padding:3px 6px; top:-28px; }
+      #current-time{ font-size:12px; }
     }
   </style>
 </head>
@@ -322,6 +329,7 @@
       <div class="title-block">
         <h1 id="titleText">Last Z Scheduler</h1>
         <p id="rangeDisplay">2026 Full Year</p>
+        <div id="current-time">--:--:--</div>
       </div>
 
       <div class="controls">
@@ -427,7 +435,6 @@
       };
     }
 
-    // Convert a Date object to parts in a specific timezone
     function getDatePartsInTZ(date, timeZone) {
       const dtf = new Intl.DateTimeFormat('en-US', {
         timeZone,
@@ -512,6 +519,7 @@
     const viewport = document.getElementById('viewport');
     const timeline = document.getElementById('timeline');
     const timelineLabel = document.getElementById('timeline-label');
+    const currentTimeEl = document.getElementById('current-time');
 
     const savedTZ = localStorage.getItem(LS_TZ);
     if (savedTZ) tzSelect.value = savedTZ;
@@ -527,6 +535,16 @@
       const v = getComputedStyle(document.documentElement).getPropertyValue('--sticky-w').trim();
       const px = parseFloat(v);
       return Number.isFinite(px) ? px : 140;
+    }
+
+    // Update clock display
+    function updateClock() {
+      const tz = tzSelect.value;
+      const parts = getTZParts(tz);
+      const hh = String(parts.hour).padStart(2, '0');
+      const mm = String(parts.minute).padStart(2, '0');
+      const ss = String(parts.second).padStart(2, '0');
+      currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
     }
 
     function updateTimeline() {
@@ -555,7 +573,6 @@
       timeline.style.display = 'block';
       timeline.style.left = `${xInContent}px`;
 
-      // Update time label (HH:MM in 24h format)
       const hh = String(parts.hour).padStart(2, '0');
       const mm = String(parts.minute).padStart(2, '0');
       timelineLabel.textContent = `${hh}:${mm}`;
@@ -674,21 +691,16 @@
           const occs = getOccurrences(evt, rangeStartJST, rangeEndJST);
 
           occs.forEach(occ => {
-            // Convert occurrence start time to selected timezone for positioning
             const startInTZ = getDatePartsInTZ(occ.start, tz);
-            const endInTZ = getDatePartsInTZ(occ.end, tz);
-
             const y = startInTZ.year;
             const m = startInTZ.month;
             const d = startInTZ.day;
             const startIdx = gridIndexForYMD(y, m, d);
             if (startIdx < 0) return;
 
-            // Calculate position based on timezone-adjusted time
             const mins = startInTZ.hour * 60 + startInTZ.minute;
             const leftPct = (mins / 1440) * 100;
             
-            // Calculate duration in the selected timezone
             const durMs = occ.end - occ.start;
             const widthPct = (durMs / 86400000) * 100;
 
@@ -721,6 +733,7 @@
       });
 
       updateTimeline();
+      updateClock();
     }
 
     function goToNow() {
@@ -774,7 +787,12 @@
 
     applyUIText();
     goToNow();
-    setInterval(updateTimeline, 30 * 1000);
+    
+    // Update clock every second
+    setInterval(() => {
+      updateClock();
+      updateTimeline();
+    }, 1000);
   </script>
 </body>
 </html>
