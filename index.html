@@ -121,7 +121,6 @@
       position:relative;
       background:var(--bg-panel);
       
-      /* Smooth horizontal scroll snap on mobile [web:160] */
       scroll-snap-type: x proximity;
       -webkit-overflow-scrolling: touch;
     }
@@ -171,7 +170,7 @@
       text-align:center;
       padding:8px 0;
       background:var(--bg-header);
-      scroll-snap-align: start; /* snap per month on mobile */
+      scroll-snap-align: start;
     }
     .date-cell{
       width:var(--cell-w);
@@ -190,19 +189,25 @@
       background:var(--bg-header);
     }
 
+    /* Make group titles stand out [web:174][web:177] */
     .group-row td{
-      background:#151515;
-      padding:6px 12px;
-      font-size:11px;
-      font-weight:800;
-      color:#aaa;
+      background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+      padding:10px 12px;
+      font-size:13px;
+      font-weight:900;
+      color:var(--accent);
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      border-top:2px solid #333;
+      border-bottom:2px solid #333;
+      text-shadow:0 2px 8px rgba(0,229,255,0.3);
     }
     .group-row td:first-child{
       position:sticky;
       left:0;
       z-index:46;
-      background:#151515;
-      box-shadow:2px 0 8px rgba(0,0,0,.6);
+      background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+      box-shadow:2px 0 12px rgba(0,0,0,.8);
     }
 
     .event-row{ height:34px; }
@@ -289,6 +294,7 @@
     @media (max-width: 768px){
       :root{ --sticky-w:110px; --cell-w:26px; }
       .header-container{ padding:10px 12px; }
+      .group-row td{ font-size:11px; padding:8px 10px; }
     }
   </style>
 </head>
@@ -511,7 +517,6 @@
       const tz = tzSelect.value;
       const year = 2026;
 
-      // Render ALL 12 months (Jan-Dec)
       const months = [];
       let totalDays = 0;
 
@@ -663,17 +668,40 @@
       updateTimeline();
     }
 
+    // Fixed: accurately scroll to center today's date [web:169][web:173]
     function goToNow() {
       const parts = getTZParts(tzSelect.value);
       render();
 
       setTimeout(() => {
         updateTimeline();
-        if (timeline.style.display !== 'none') {
-          const x = parseFloat(timeline.style.left) || 0;
-          viewport.scrollTo({ left: Math.max(0, x - viewport.clientWidth / 2), behavior: 'smooth' });
+        
+        // Find today's cell
+        const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
+        
+        if (cell && timeline.style.display !== 'none') {
+          // Get cell position relative to the table (not viewport)
+          const table = document.getElementById('calendarTable');
+          const tableRect = table.getBoundingClientRect();
+          const cellRect = cell.getBoundingClientRect();
+          
+          // Calculate cell's left position relative to table start
+          const cellLeftInTable = cellRect.left - tableRect.left + viewport.scrollLeft;
+          
+          // Add progress through the day for precise centering
+          const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
+          const progress = seconds / 86400;
+          const cellCenterInTable = cellLeftInTable + (cellRect.width * progress);
+          
+          // Center this position in viewport
+          const targetScroll = cellCenterInTable - (viewport.clientWidth / 2);
+          
+          viewport.scrollTo({
+            left: Math.max(0, targetScroll),
+            behavior: 'smooth'
+          });
         }
-      }, 150);
+      }, 200);
     }
 
     document.getElementById('langBtn').addEventListener('click', () => {
