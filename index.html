@@ -338,7 +338,6 @@
         <select id="tzSelect">
           <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
           <option value="UTC">UTC</option>
-          <option value="America/New_York">America/New_York</option>
         </select>
 
         <button id="nowBtn" type="button">今日</button>
@@ -537,7 +536,6 @@
       return Number.isFinite(px) ? px : 140;
     }
 
-    // Update clock display
     function updateClock() {
       const tz = tzSelect.value;
       const parts = getTZParts(tz);
@@ -547,6 +545,7 @@
       currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
     }
 
+    // Fixed: Use offsetLeft/offsetWidth consistently like goToNow() does
     function updateTimeline() {
       const tz = tzSelect.value;
       const parts = getTZParts(tz);
@@ -557,21 +556,21 @@
         return; 
       }
 
+      // Use offsetLeft for consistent positioning (not affected by scroll)
+      const cellLeft = cell.offsetLeft;
+      const cellWidth = cell.offsetWidth;
+
       const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
       const progress = seconds / 86400;
+      
+      const exactPosition = cellLeft + (cellWidth * progress);
 
-      const cellRect = cell.getBoundingClientRect();
-      const vpRect = viewport.getBoundingClientRect();
-
-      let xInViewport = (cellRect.left - vpRect.left) + (cellRect.width * progress);
-
+      // Clamp to sticky column width
       const stickyW = getStickyWidthPx();
-      if (xInViewport < stickyW) xInViewport = stickyW;
-
-      const xInContent = viewport.scrollLeft + xInViewport;
+      const finalPosition = Math.max(exactPosition, stickyW);
 
       timeline.style.display = 'block';
-      timeline.style.left = `${xInContent}px`;
+      timeline.style.left = `${finalPosition}px`;
 
       const hh = String(parts.hour).padStart(2, '0');
       const mm = String(parts.minute).padStart(2, '0');
@@ -788,7 +787,6 @@
     applyUIText();
     goToNow();
     
-    // Update clock every second
     setInterval(() => {
       updateClock();
       updateTimeline();
