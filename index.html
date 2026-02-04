@@ -271,7 +271,7 @@
       opacity:0;
       transition:opacity .12s ease;
       max-width:min(340px, 90vw);
-      box-shadow:0 10px 24px rgba(0,0,0,.8);
+      box-shadow:0 10px 24px rgba(0,0,8,.8);
       margin-top:-10px;
     }
 
@@ -526,6 +526,7 @@
       currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
     }
 
+    // Fixed: Use offsetLeft consistently for accurate positioning on both desktop and mobile
     function updateTimeline() {
       const tz = tzSelect.value;
       const parts = getTZParts(tz);
@@ -537,23 +538,30 @@
         return; 
       }
 
+      // Use offsetLeft/offsetWidth for scroll-independent calculation
+      const cellLeft = cell.offsetLeft;
+      const cellWidth = cell.offsetWidth;
+
       // Calculate position within the day (0 to 1)
       const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
       const dayProgress = seconds / 86400;
 
-      // Get cell position and dimensions
-      const cellRect = cell.getBoundingClientRect();
+      // Exact position in content (table coordinates)
+      const positionInContent = cellLeft + (cellWidth * dayProgress);
+
+      // Get viewport info
       const vpRect = viewport.getBoundingClientRect();
+      const scrollLeft = viewport.scrollLeft;
 
-      // Calculate exact position of the timeline within the cell
-      const positionWithinCell = cellRect.left - vpRect.left + (cellRect.width * dayProgress);
+      // Calculate position relative to viewport
+      let positionInViewport = positionInContent - scrollLeft;
 
-      // Clamp to sticky column edge
+      // Clamp to sticky column edge when scrolled past
       const stickyW = getStickyWidthPx();
-      const clampedPosition = Math.max(positionWithinCell, stickyW + 2);
+      positionInViewport = Math.max(positionInViewport, stickyW + 2);
 
-      // Position relative to the browser window
-      const finalLeft = vpRect.left + clampedPosition;
+      // Final position relative to browser window
+      const finalLeft = vpRect.left + positionInViewport;
 
       timeline.style.display = 'block';
       timeline.style.left = `${finalLeft}px`;
@@ -715,8 +723,11 @@
         });
       });
 
-      updateTimeline();
-      updateClock();
+      // Small delay to ensure DOM is fully rendered before calculating positions
+      setTimeout(() => {
+        updateTimeline();
+        updateClock();
+      }, 50);
     }
 
     function goToNow() {
