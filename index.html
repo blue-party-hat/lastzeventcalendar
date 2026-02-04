@@ -275,14 +275,15 @@
       margin-top:-10px;
     }
 
+    /* Timeline: fixed position that adjusts based on scroll */
     #timeline{
-      position:absolute;
+      position:fixed;
       top:0;
       bottom:0;
       width:2px;
       background:var(--timeline);
       box-shadow:0 0 14px var(--timeline);
-      z-index:80;
+      z-index:85;
       pointer-events:none;
       display:none;
     }
@@ -300,7 +301,7 @@
 
     #timeline-label{
       position:absolute;
-      top:-30px;
+      top:80px;
       left:50%;
       transform:translateX(-50%);
       background:var(--timeline);
@@ -317,7 +318,7 @@
       :root{ --sticky-w:110px; --cell-w:26px; }
       .header-container{ padding:10px 12px; }
       .group-row td{ font-size:11px; padding:8px 10px; }
-      #timeline-label{ font-size:10px; padding:3px 6px; top:-28px; }
+      #timeline-label{ font-size:10px; padding:3px 6px; top:70px; }
       #current-time{ font-size:12px; }
     }
   </style>
@@ -545,7 +546,7 @@
       currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
     }
 
-    // Fixed: Use offsetLeft/offsetWidth consistently like goToNow() does
+    // Fixed: Use fixed positioning that stays visible when scrolling
     function updateTimeline() {
       const tz = tzSelect.value;
       const parts = getTZParts(tz);
@@ -556,21 +557,34 @@
         return; 
       }
 
-      // Use offsetLeft for consistent positioning (not affected by scroll)
       const cellLeft = cell.offsetLeft;
       const cellWidth = cell.offsetWidth;
 
       const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
       const progress = seconds / 86400;
       
-      const exactPosition = cellLeft + (cellWidth * progress);
+      // Position in content (table)
+      const positionInContent = cellLeft + (cellWidth * progress);
 
-      // Clamp to sticky column width
+      // Get viewport bounds
+      const vpRect = viewport.getBoundingClientRect();
+      const scrollLeft = viewport.scrollLeft;
       const stickyW = getStickyWidthPx();
-      const finalPosition = Math.max(exactPosition, stickyW);
+
+      // Calculate position relative to viewport
+      let positionInViewport = positionInContent - scrollLeft;
+
+      // Clamp: if scrolled past "now", stick it at the edge of the sticky column
+      const minPosition = stickyW + 2; // 2px offset so it's right after sticky column border
+      positionInViewport = Math.max(positionInViewport, minPosition);
+
+      // Position relative to the app window
+      const finalLeft = vpRect.left + positionInViewport;
 
       timeline.style.display = 'block';
-      timeline.style.left = `${finalPosition}px`;
+      timeline.style.left = `${finalLeft}px`;
+      timeline.style.top = `${vpRect.top}px`;
+      timeline.style.height = `${vpRect.height}px`;
 
       const hh = String(parts.hour).padStart(2, '0');
       const mm = String(parts.minute).padStart(2, '0');
