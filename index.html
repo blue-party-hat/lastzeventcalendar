@@ -189,7 +189,7 @@
       background:var(--bg-header);
     }
 
-    /* Make group titles stand out [web:174][web:177] */
+    /* Make group titles stand out */
     .group-row td{
       background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
       padding:10px 12px;
@@ -365,10 +365,10 @@
         title: '週次イベント',
         title_en: 'Weekly Events',
         events: [
-          { name: '幸福自選宝庫', name_en: 'Happiness Choice Vault', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
-          { name: 'ラッキー抽選', name_en: 'Lucky Draw', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
-          { name: '弾丸のやつ', name_en: 'Bullet Event', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
-          { name: 'ラッキー商店', name_en: 'Lucky Shop', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
+          { name: '幸福自選宝庫', name_en: 'Spin the Wheel', color: 'linear-gradient(90deg, #00f260, #0575e6)', startDate: '2026-01-16', startTime: '11:00', endDate: '2026-01-23', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー抽選', name_en: 'Gacha Go', color: 'linear-gradient(90deg, #4facfe, #00f2fe)', startDate: '2026-01-23', startTime: '11:00', endDate: '2026-01-30', endTime: '10:59', cycle: 28 },
+          { name: '射撃場', name_en: 'Bullseye Bounty', color: 'linear-gradient(90deg, #43e97b, #38f9d7)', startDate: '2026-01-30', startTime: '11:00', endDate: '2026-02-06', endTime: '10:59', cycle: 28 },
+          { name: 'ラッキー商店', name_en: 'Lucky Discounter', color: 'linear-gradient(90deg, #fa709a, #fee140)', startDate: '2026-02-06', startTime: '11:00', endDate: '2026-02-13', endTime: '10:59', cycle: 28 }
         ]
       },
       {
@@ -668,7 +668,7 @@
       updateTimeline();
     }
 
-    // Fixed: accurately scroll to center today's date [web:169][web:173]
+    // Fixed: accurately scroll to center today's date using offsetLeft
     function goToNow() {
       const parts = getTZParts(tzSelect.value);
       render();
@@ -680,21 +680,17 @@
         const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
         
         if (cell && timeline.style.display !== 'none') {
-          // Get cell position relative to the table (not viewport)
-          const table = document.getElementById('calendarTable');
-          const tableRect = table.getBoundingClientRect();
-          const cellRect = cell.getBoundingClientRect();
-          
-          // Calculate cell's left position relative to table start
-          const cellLeftInTable = cellRect.left - tableRect.left + viewport.scrollLeft;
+          // Use offsetLeft for accurate position (not affected by current scroll)
+          const cellLeft = cell.offsetLeft;
+          const cellWidth = cell.offsetWidth;
           
           // Add progress through the day for precise centering
           const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
           const progress = seconds / 86400;
-          const cellCenterInTable = cellLeftInTable + (cellRect.width * progress);
+          const exactPosition = cellLeft + (cellWidth * progress);
           
           // Center this position in viewport
-          const targetScroll = cellCenterInTable - (viewport.clientWidth / 2);
+          const targetScroll = exactPosition - (viewport.clientWidth / 2);
           
           viewport.scrollTo({
             left: Math.max(0, targetScroll),
