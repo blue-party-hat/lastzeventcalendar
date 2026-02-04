@@ -120,6 +120,10 @@
       overflow:auto;
       position:relative;
       background:var(--bg-panel);
+      
+      /* Smooth horizontal scroll snap on mobile [web:160] */
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
     }
 
     table{
@@ -167,6 +171,7 @@
       text-align:center;
       padding:8px 0;
       background:var(--bg-header);
+      scroll-snap-align: start; /* snap per month on mobile */
     }
     .date-cell{
       width:var(--cell-w);
@@ -230,7 +235,6 @@
       z-index:10;
       touch-action:manipulation;
     }
-    /* bigger tap target for tiny bars */
     .event-bar::before{
       content:"";
       position:absolute;
@@ -259,7 +263,6 @@
       margin-top:-10px;
     }
 
-    /* Timeline (clamped to never draw inside sticky column) */
     #timeline{
       position:absolute;
       top:0;
@@ -295,7 +298,7 @@
     <div class="header-container">
       <div class="title-block">
         <h1 id="titleText">Last Z Scheduler</h1>
-        <p id="rangeDisplay">Loading...</p>
+        <p id="rangeDisplay">2026 Full Year</p>
       </div>
 
       <div class="controls">
@@ -308,7 +311,6 @@
           <option value="Europe/London">Europe/London</option>
         </select>
 
-        <select id="startMonthSelect"></select>
         <button id="nowBtn" type="button">今日</button>
       </div>
     </div>
@@ -325,28 +327,19 @@
   <div id="global-tooltip"></div>
 
   <script>
-    // ----------------------------
-    // Persisted settings (language + timezone) using localStorage [web:147][web:149]
-    // ----------------------------
     const LS_LANG = 'lz.lang';
     const LS_TZ   = 'lz.tz';
 
-    let uiLang = (localStorage.getItem(LS_LANG) || 'ja'); // 'ja' | 'en'
+    let uiLang = (localStorage.getItem(LS_LANG) || 'ja');
     if (uiLang !== 'ja' && uiLang !== 'en') uiLang = 'ja';
 
-    // ----------------------------
-    // i18n strings
-    // ----------------------------
     const I18N = {
       ja: {
         title: 'Last Z Scheduler',
         eventCol: 'イベント',
         now: '今日',
         days: ['日','月','火','水','木','金','土'],
-        range: (startDate, endDate) =>
-          `${startDate.toLocaleString('ja-JP', { month: 'long' })} - ${endDate.toLocaleString('ja-JP', { year: 'numeric', month: 'long' })}`,
-        monthLabel: (y, m0) => new Date(y, m0, 1).toLocaleString('ja-JP', { month: 'long' }),
-        monthSelect: (y, m0) => new Date(y, m0, 1).toLocaleString('ja-JP', { month: 'long', year: 'numeric' }),
+        yearRange: '2026年 全年',
         tooltipFmt: (name, start, end) => `<b>${name}</b><br>${start}<br>~<br>${end}`,
         langBtn: 'EN'
       },
@@ -355,19 +348,12 @@
         eventCol: 'Event',
         now: 'Now',
         days: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
-        range: (startDate, endDate) =>
-          `${startDate.toLocaleString('en-US', { month: 'short' })} - ${endDate.toLocaleString('en-US', { month: 'short', year: 'numeric' })}`,
-        monthLabel: (y, m0) => new Date(y, m0, 1).toLocaleString('en-US', { month: 'long' }),
-        monthSelect: (y, m0) => new Date(y, m0, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+        yearRange: '2026 Full Year',
         tooltipFmt: (name, start, end) => `<b>${name}</b><br>${start}<br>to<br>${end}`,
         langBtn: 'JP'
       }
     };
 
-    // ----------------------------
-    // Fully translated names (UI + group + event)
-    // If you have the official EN names, send them and I’ll swap these.
-    // ----------------------------
     const groups = [
       {
         title: '週次イベント',
@@ -397,9 +383,6 @@
       }
     ];
 
-    // ----------------------------
-    // TZ-safe "now" using formatToParts [web:153]
-    // ----------------------------
     function getTZParts(timeZone) {
       const dtf = new Intl.DateTimeFormat('en-US', {
         timeZone,
@@ -412,7 +395,7 @@
       for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
       return {
         year: Number(map.year),
-        month: Number(map.month), // 1-12
+        month: Number(map.month),
         day: Number(map.day),
         hour: Number(map.hour),
         minute: Number(map.minute),
@@ -451,9 +434,6 @@
       return occs;
     }
 
-    // ----------------------------
-    // Tooltip
-    // ----------------------------
     const tooltipEl = document.getElementById('global-tooltip');
     let tooltipPinned = false;
 
@@ -483,15 +463,10 @@
       if (!isBar) hideTooltip();
     });
 
-    // ----------------------------
-    // DOM refs
-    // ----------------------------
     const tzSelect = document.getElementById('tzSelect');
-    const monthSelect = document.getElementById('startMonthSelect');
     const viewport = document.getElementById('viewport');
     const timeline = document.getElementById('timeline');
 
-    // Restore timezone from localStorage
     const savedTZ = localStorage.getItem(LS_TZ);
     if (savedTZ) tzSelect.value = savedTZ;
 
@@ -499,20 +474,9 @@
       document.getElementById('titleText').textContent = I18N[uiLang].title;
       document.getElementById('langBtn').textContent = I18N[uiLang].langBtn;
       document.getElementById('nowBtn').textContent = I18N[uiLang].now;
+      document.getElementById('rangeDisplay').textContent = I18N[uiLang].yearRange;
     }
 
-    function rebuildMonthSelect() {
-      const prev = monthSelect.value || "0";
-      monthSelect.innerHTML = '';
-      for (let i = 0; i < 12; i++) {
-        monthSelect.add(new Option(I18N[uiLang].monthSelect(2026, i), i));
-      }
-      monthSelect.value = prev;
-    }
-
-    // ----------------------------
-    // Timeline clamp: never overlap sticky column [web:134]
-    // ----------------------------
     function getStickyWidthPx() {
       const v = getComputedStyle(document.documentElement).getPropertyValue('--sticky-w').trim();
       const px = parseFloat(v);
@@ -543,27 +507,19 @@
       timeline.style.left = `${xInContent}px`;
     }
 
-    // ----------------------------
-    // Render calendar
-    // ----------------------------
-    function render(startMonthIdx) {
+    function render() {
       const tz = tzSelect.value;
-
       const year = 2026;
+
+      // Render ALL 12 months (Jan-Dec)
       const months = [];
       let totalDays = 0;
 
-      for (let i = 0; i < 3; i++) {
-        let m = startMonthIdx + i, y = year;
-        if (m > 11) { m -= 12; y++; }
-        const days = new Date(y, m + 1, 0).getDate();
-        months.push({ y, m, days });
+      for (let m = 0; m < 12; m++) {
+        const days = new Date(year, m + 1, 0).getDate();
+        months.push({ y: year, m, days });
         totalDays += days;
       }
-
-      const viewStartLocal = new Date(months[0].y, months[0].m, 1);
-      const viewEndLocal = new Date(months[2].y, months[2].m, months[2].days);
-      document.getElementById('rangeDisplay').textContent = I18N[uiLang].range(viewStartLocal, viewEndLocal);
 
       const thead = document.getElementById('calendarHeader');
       const tbody = document.getElementById('calendarBody');
@@ -581,7 +537,8 @@
         const th = document.createElement('th');
         th.className = 'month-header-cell';
         th.colSpan = cfg.days;
-        th.textContent = I18N[uiLang].monthLabel(cfg.y, cfg.m);
+        const locale = (uiLang === 'ja') ? 'ja-JP' : 'en-US';
+        th.textContent = new Date(cfg.y, cfg.m, 1).toLocaleString(locale, { month: 'long' });
         rowM.appendChild(th);
       });
       thead.appendChild(rowM);
@@ -612,9 +569,8 @@
       });
       thead.appendChild(rowW);
 
-      const rangeStartJST = new Date(`${months[0].y}-${String(months[0].m+1).padStart(2,'0')}-01T00:00:00+09:00`);
-      const last = months[2];
-      const rangeEndJST = new Date(`${last.y}-${String(last.m+1).padStart(2,'0')}-${String(last.days).padStart(2,'0')}T23:59:59+09:00`);
+      const rangeStartJST = new Date('2026-01-01T00:00:00+09:00');
+      const rangeEndJST = new Date('2026-12-31T23:59:59+09:00');
 
       function gridIndexForYMD(y, m1to12, d1to31) {
         let idx = 0;
@@ -709,8 +665,7 @@
 
     function goToNow() {
       const parts = getTZParts(tzSelect.value);
-      monthSelect.value = String(parts.month - 1);
-      render(Number(monthSelect.value));
+      render();
 
       setTimeout(() => {
         updateTimeline();
@@ -721,30 +676,20 @@
       }, 150);
     }
 
-    // ----------------------------
-    // UI events
-    // ----------------------------
     document.getElementById('langBtn').addEventListener('click', () => {
       uiLang = (uiLang === 'ja') ? 'en' : 'ja';
-      localStorage.setItem(LS_LANG, uiLang); // persist [web:147]
+      localStorage.setItem(LS_LANG, uiLang);
       tooltipEl.style.opacity = '0';
       tooltipPinned = false;
       applyUIText();
-      rebuildMonthSelect();
-      render(Number(monthSelect.value || 0));
+      render();
     });
 
     tzSelect.addEventListener('change', () => {
-      localStorage.setItem(LS_TZ, tzSelect.value); // persist [web:147]
+      localStorage.setItem(LS_TZ, tzSelect.value);
       tooltipEl.style.opacity = '0';
       tooltipPinned = false;
-      render(Number(monthSelect.value || 0));
-    });
-
-    monthSelect.addEventListener('change', () => {
-      tooltipEl.style.opacity = '0';
-      tooltipPinned = false;
-      render(Number(monthSelect.value || 0));
+      render();
     });
 
     document.getElementById('nowBtn').addEventListener('click', goToNow);
@@ -753,11 +698,7 @@
       if (timeline.style.display !== 'none') updateTimeline();
     }, { passive: true });
 
-    // ----------------------------
-    // Init
-    // ----------------------------
     applyUIText();
-    rebuildMonthSelect();
     goToNow();
     setInterval(updateTimeline, 30 * 1000);
   </script>
