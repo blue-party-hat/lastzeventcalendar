@@ -291,10 +291,27 @@
       box-shadow:0 0 14px var(--timeline);
     }
 
+    /* Time label on top of red line */
+    #timeline-label{
+      position:absolute;
+      top:-30px;
+      left:50%;
+      transform:translateX(-50%);
+      background:var(--timeline);
+      color:#fff;
+      padding:4px 8px;
+      border-radius:4px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+      box-shadow:0 2px 8px rgba(255,0,85,0.6);
+    }
+
     @media (max-width: 768px){
       :root{ --sticky-w:110px; --cell-w:26px; }
       .header-container{ padding:10px 12px; }
       .group-row td{ font-size:11px; padding:8px 10px; }
+      #timeline-label{ font-size:10px; padding:3px 6px; top:-28px; }
     }
   </style>
 </head>
@@ -314,7 +331,6 @@
           <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
           <option value="UTC">UTC</option>
           <option value="America/New_York">America/New_York</option>
-          <option value="Europe/London">Europe/London</option>
         </select>
 
         <button id="nowBtn" type="button">今日</button>
@@ -322,7 +338,9 @@
     </div>
 
     <div class="viewport" id="viewport">
-      <div id="timeline"></div>
+      <div id="timeline">
+        <div id="timeline-label">00:00</div>
+      </div>
       <table id="calendarTable">
         <thead id="calendarHeader"></thead>
         <tbody id="calendarBody"></tbody>
@@ -409,6 +427,27 @@
       };
     }
 
+    // Convert a Date object to parts in a specific timezone
+    function getDatePartsInTZ(date, timeZone) {
+      const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      });
+      const parts = dtf.formatToParts(date);
+      const map = {};
+      for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+      return {
+        year: Number(map.year),
+        month: Number(map.month),
+        day: Number(map.day),
+        hour: Number(map.hour),
+        minute: Number(map.minute),
+        second: Number(map.second)
+      };
+    }
+
     function parseInternalJSTToDate(dStr, tStr) {
       return new Date(`${dStr}T${tStr}:00+09:00`);
     }
@@ -472,6 +511,7 @@
     const tzSelect = document.getElementById('tzSelect');
     const viewport = document.getElementById('viewport');
     const timeline = document.getElementById('timeline');
+    const timelineLabel = document.getElementById('timeline-label');
 
     const savedTZ = localStorage.getItem(LS_TZ);
     if (savedTZ) tzSelect.value = savedTZ;
@@ -494,7 +534,10 @@
       const parts = getTZParts(tz);
 
       const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
-      if (!cell) { timeline.style.display = 'none'; return; }
+      if (!cell) { 
+        timeline.style.display = 'none'; 
+        return; 
+      }
 
       const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
       const progress = seconds / 86400;
@@ -511,6 +554,11 @@
 
       timeline.style.display = 'block';
       timeline.style.left = `${xInContent}px`;
+
+      // Update time label (HH:MM in 24h format)
+      const hh = String(parts.hour).padStart(2, '0');
+      const mm = String(parts.minute).padStart(2, '0');
+      timelineLabel.textContent = `${hh}:${mm}`;
     }
 
     function render() {
@@ -626,14 +674,21 @@
           const occs = getOccurrences(evt, rangeStartJST, rangeEndJST);
 
           occs.forEach(occ => {
-            const y = occ.start.getFullYear();
-            const m = occ.start.getMonth() + 1;
-            const d = occ.start.getDate();
+            // Convert occurrence start time to selected timezone for positioning
+            const startInTZ = getDatePartsInTZ(occ.start, tz);
+            const endInTZ = getDatePartsInTZ(occ.end, tz);
+
+            const y = startInTZ.year;
+            const m = startInTZ.month;
+            const d = startInTZ.day;
             const startIdx = gridIndexForYMD(y, m, d);
             if (startIdx < 0) return;
 
-            const mins = occ.start.getHours() * 60 + occ.start.getMinutes();
+            // Calculate position based on timezone-adjusted time
+            const mins = startInTZ.hour * 60 + startInTZ.minute;
             const leftPct = (mins / 1440) * 100;
+            
+            // Calculate duration in the selected timezone
             const durMs = occ.end - occ.start;
             const widthPct = (durMs / 86400000) * 100;
 
@@ -668,7 +723,6 @@
       updateTimeline();
     }
 
-    // Fixed: accurately scroll to center today's date using offsetLeft
     function goToNow() {
       const parts = getTZParts(tzSelect.value);
       render();
@@ -676,20 +730,16 @@
       setTimeout(() => {
         updateTimeline();
         
-        // Find today's cell
         const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
         
         if (cell && timeline.style.display !== 'none') {
-          // Use offsetLeft for accurate position (not affected by current scroll)
           const cellLeft = cell.offsetLeft;
           const cellWidth = cell.offsetWidth;
           
-          // Add progress through the day for precise centering
           const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
           const progress = seconds / 86400;
           const exactPosition = cellLeft + (cellWidth * progress);
           
-          // Center this position in viewport
           const targetScroll = exactPosition - (viewport.clientWidth / 2);
           
           viewport.scrollTo({
