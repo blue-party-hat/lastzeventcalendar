@@ -271,7 +271,7 @@
       opacity:0;
       transition:opacity .12s ease;
       max-width:min(340px, 90vw);
-      box-shadow:0 10px 24px rgba(0,0,8,.8);
+      box-shadow:0 10px 24px rgba(0,0,0,.8);
       margin-top:-10px;
     }
 
@@ -416,23 +416,30 @@
       };
     }
 
-    function getDatePartsInTZ(date, timeZone) {
-      const dtf = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false
+    // Fixed: More reliable timezone conversion using UTC as reference
+    function getLocalTimeInTZ(utcDate, timeZone) {
+      const str = utcDate.toLocaleString('en-US', { 
+        timeZone, 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false 
       });
-      const parts = dtf.formatToParts(date);
-      const map = {};
-      for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+      
+      // Parse the formatted string
+      const match = str.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
+      if (!match) return null;
+      
       return {
-        year: Number(map.year),
-        month: Number(map.month),
-        day: Number(map.day),
-        hour: Number(map.hour),
-        minute: Number(map.minute),
-        second: Number(map.second)
+        year: Number(match[3]),
+        month: Number(match[1]),
+        day: Number(match[2]),
+        hour: Number(match[4]),
+        minute: Number(match[5]),
+        second: Number(match[6])
       };
     }
 
@@ -526,41 +533,32 @@
       currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
     }
 
-    // Fixed: Use offsetLeft consistently for accurate positioning on both desktop and mobile
     function updateTimeline() {
       const tz = tzSelect.value;
       const parts = getTZParts(tz);
 
-      // Find the cell for today's date in the selected timezone
       const cell = document.querySelector(`.date-cell[data-y="${parts.year}"][data-m="${parts.month}"][data-d="${parts.day}"]`);
       if (!cell) { 
         timeline.style.display = 'none'; 
         return; 
       }
 
-      // Use offsetLeft/offsetWidth for scroll-independent calculation
       const cellLeft = cell.offsetLeft;
       const cellWidth = cell.offsetWidth;
 
-      // Calculate position within the day (0 to 1)
       const seconds = parts.hour * 3600 + parts.minute * 60 + parts.second;
       const dayProgress = seconds / 86400;
 
-      // Exact position in content (table coordinates)
       const positionInContent = cellLeft + (cellWidth * dayProgress);
 
-      // Get viewport info
       const vpRect = viewport.getBoundingClientRect();
       const scrollLeft = viewport.scrollLeft;
 
-      // Calculate position relative to viewport
       let positionInViewport = positionInContent - scrollLeft;
 
-      // Clamp to sticky column edge when scrolled past
       const stickyW = getStickyWidthPx();
       positionInViewport = Math.max(positionInViewport, stickyW + 2);
 
-      // Final position relative to browser window
       const finalLeft = vpRect.left + positionInViewport;
 
       timeline.style.display = 'block';
@@ -682,7 +680,10 @@
           const occs = getOccurrences(evt, rangeStartJST, rangeEndJST);
 
           occs.forEach(occ => {
-            const startInTZ = getDatePartsInTZ(occ.start, tz);
+            // Convert occurrence times to selected timezone
+            const startInTZ = getLocalTimeInTZ(occ.start, tz);
+            if (!startInTZ) return;
+            
             const y = startInTZ.year;
             const m = startInTZ.month;
             const d = startInTZ.day;
@@ -723,7 +724,6 @@
         });
       });
 
-      // Small delay to ensure DOM is fully rendered before calculating positions
       setTimeout(() => {
         updateTimeline();
         updateClock();
