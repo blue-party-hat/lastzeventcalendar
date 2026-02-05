@@ -254,6 +254,19 @@
       background:transparent;
     }
 
+    /* Multi-day overlay bar, spans across multiple day cells */
+    .event-bar-span{
+      position:absolute;
+      top:4px;
+      bottom:4px;
+      border-radius:4px;
+      box-shadow:0 4px 12px rgba(0,0,0,.45);
+      cursor:pointer;
+      z-index:10;
+      touch-action:manipulation;
+      opacity:.92;
+    }
+
     #global-tooltip{
       position:fixed;
       top:0; left:0;
@@ -367,7 +380,6 @@
       }
     };
 
-    // ---------- Time helpers (no formatToParts for events) ----------
     function pad2(n){ return String(n).padStart(2,'0'); }
 
     function fmtInTZ(date, timeZone) {
@@ -380,31 +392,26 @@
       }).format(date);
     }
 
-    // Convert an instant to "year/month/day/hour/minute/second" in a target tz,
-    // by formatting and extracting digits (works well across mobile too).
+    // Parse numeric parts in target TZ by extracting digits (robust on mobile too).
     function partsInTZ(date, timeZone) {
-      // Use a stable numeric format we can parse.
       const s = new Intl.DateTimeFormat('en-CA', {
         timeZone,
         year:'numeric', month:'2-digit', day:'2-digit',
         hour:'2-digit', minute:'2-digit', second:'2-digit',
         hour12:false
       }).format(date);
-      // en-CA often yields "YYYY-MM-DD, HH:MM:SS" (implementation-dependent),
-      // so just extract all numbers in order.
+
       const nums = s.match(/\d+/g);
       if (!nums || nums.length < 6) return null;
       const [Y,M,D,h,m,sec] = nums.map(Number);
       return { year:Y, month:M, day:D, hour:h, minute:m, second:sec };
     }
 
-    // Parse input event definitions that are expressed in JST local wall time.
-    // ISO8601 with +09:00 is safe and unambiguous. [web:191][web:188]
+    // ISO8601 with explicit offset is unambiguous in JS Date parsing. [web:191][web:188]
     function parseJST(dStr, tStr) {
       return new Date(`${dStr}T${tStr}:00+09:00`);
     }
 
-    // ---------- Data ----------
     const groups = [
       {
         title: '週次イベント',
@@ -421,10 +428,8 @@
         title: 'SvS',
         title_en: 'SvS',
         events: [
-          // Semi-final
           { name: '準決勝侵略権争い', name_en: 'Semi-Final Invasion Rights', color: 'linear-gradient(90deg, #f093fb, #f5576c)', startDate: '2026-01-11', startTime: '11:00', endDate: '2026-01-17', endTime: '10:59', cycle: 28 },
-          { name: '準決勝本戦', name_en: 'Semi-Final Match',          color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 },
-          // Final
+          { name: '準決勝本戦',       name_en: 'Semi-Final Match',          color: 'linear-gradient(90deg, #ff9a9e, #fecfef)', startDate: '2026-01-17', startTime: '23:00', endDate: '2026-01-18', endTime: '03:00', cycle: 28 },
           { name: '決勝侵略権争い',   name_en: 'Final Invasion Rights',     color: 'linear-gradient(90deg, #89f7fe, #66a6ff)', startDate: '2026-01-18', startTime: '11:00', endDate: '2026-01-24', endTime: '10:59', cycle: 28 },
           { name: '決勝本戦',         name_en: 'Final Match',              color: 'linear-gradient(90deg, #cd9cf2, #f6f3ff)', startDate: '2026-01-24', startTime: '23:00', endDate: '2026-01-25', endTime: '03:00', cycle: 28 }
         ]
@@ -441,14 +446,13 @@
             startDate: '2026-02-05',
             startTime: '23:00',
             endDate: '2026-02-06',
-            endTime: '22:59',
+            endTime: '03:00',
             cycle: 14
           },
           {
             name: 'シーズン２',
             name_en: 'Season 2',
             color: 'linear-gradient(90deg, #a18cd1, #fbc2eb)',
-            // Start/end are fixed, not cyclical
             fixedStart: '2025-01-01T17:00:00+09:00',
             fixedEnd:   '2026-03-19T23:59:00+09:00'
           }
@@ -456,43 +460,38 @@
       }
     ];
 
-    // ---------- Occurrence generation ----------
     function getOccurrences(evt, rangeStart, rangeEnd) {
-      // Fixed one-time event
       if (evt.fixedStart && evt.fixedEnd) {
         const s = new Date(evt.fixedStart);
         const e = new Date(evt.fixedEnd);
-        if (e > rangeStart && s < rangeEnd) return [{ start: s, end: e }];
+        if (e > rangeStart && s < rangeEnd) return [{ start: s, end: e, isSpan: true }];
         return [];
       }
 
-      // Cycled event defined in JST wall time
       const eStart = parseJST(evt.startDate, evt.startTime);
       const eEnd = parseJST(evt.endDate, evt.endTime);
       const duration = eEnd - eStart;
       const cycleMs = (evt.cycle || 0) * 86400000;
 
       if (!cycleMs || cycleMs <= 0) {
-        if (eEnd > rangeStart && eStart < rangeEnd) return [{ start: eStart, end: eEnd }];
+        if (eEnd > rangeStart && eStart < rangeEnd) return [{ start: eStart, end: eEnd, isSpan: false }];
         return [];
       }
 
       const out = [];
       let cur = new Date(eStart);
 
-      // Fast-forward near rangeStart
       while (cur.getTime() + duration < rangeStart.getTime()) cur = new Date(cur.getTime() + cycleMs);
 
       while (cur < rangeEnd) {
         const end = new Date(cur.getTime() + duration);
-        if (end > rangeStart) out.push({ start: new Date(cur), end });
+        if (end > rangeStart) out.push({ start: new Date(cur), end, isSpan: false });
         cur = new Date(cur.getTime() + cycleMs);
       }
 
       return out;
     }
 
-    // ---------- Tooltip ----------
     const tooltipEl = document.getElementById('global-tooltip');
     let tooltipPinned = false;
 
@@ -518,11 +517,10 @@
 
     document.addEventListener('pointerdown', (e) => {
       if (!tooltipPinned) return;
-      const isBar = e.target.closest && e.target.closest('.event-bar');
+      const isBar = e.target.closest && e.target.closest('.event-bar, .event-bar-span');
       if (!isBar) hideTooltip();
     });
 
-    // ---------- UI + Timeline ----------
     const tzSelect = document.getElementById('tzSelect');
     const viewport = document.getElementById('viewport');
     const timeline = document.getElementById('timeline');
@@ -583,7 +581,6 @@
       timeline.style.height = `${vpRect.height}px`;
     }
 
-    // ---------- Render ----------
     function render() {
       const tz = tzSelect.value;
       const year = 2026;
@@ -602,7 +599,6 @@
       thead.innerHTML = '';
       tbody.innerHTML = '';
 
-      // Month row
       const rowM = document.createElement('tr');
       const corner = document.createElement('th');
       corner.className = 'sticky-col header';
@@ -620,7 +616,6 @@
       });
       thead.appendChild(rowM);
 
-      // Date row
       const rowD = document.createElement('tr');
       months.forEach(cfg => {
         for (let d = 1; d <= cfg.days; d++) {
@@ -635,7 +630,6 @@
       });
       thead.appendChild(rowD);
 
-      // Weekday row
       const rowW = document.createElement('tr');
       const dow = I18N[uiLang].days;
       months.forEach(cfg => {
@@ -648,7 +642,6 @@
       });
       thead.appendChild(rowW);
 
-      // Rendering range (year 2026 in JST reference, but occurrences are instants anyway)
       const rangeStart = new Date('2026-01-01T00:00:00+09:00');
       const rangeEnd   = new Date('2026-12-31T23:59:59+09:00');
 
@@ -661,6 +654,10 @@
           }
         }
         return -1;
+      }
+
+      function totalWidthPx(){
+        return totalDays * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
       }
 
       groups.forEach(grp => {
@@ -701,7 +698,64 @@
           const occs = getOccurrences(evt, rangeStart, rangeEnd);
 
           occs.forEach(occ => {
-            // Convert instant -> selected TZ parts for placement
+            // If it's a fixed span (Season 2), draw a single long bar across all affected days in 2026
+            if (occ.isSpan) {
+              // Clamp span to visible 2026 range
+              const s = new Date(Math.max(occ.start.getTime(), rangeStart.getTime()));
+              const e = new Date(Math.min(occ.end.getTime(), rangeEnd.getTime()));
+
+              const ps = partsInTZ(s, tz);
+              const pe = partsInTZ(e, tz);
+              if (!ps || !pe) return;
+
+              const startIdx = gridIndexForYMD(ps.year, ps.month, ps.day);
+              const endIdx = gridIndexForYMD(pe.year, pe.month, pe.day);
+              if (startIdx < 0 || endIdx < 0) return;
+
+              // Create an overlay bar inside the first day cell, spanning across cells by px width
+              const startCell = cells[startIdx];
+              const cellW = startCell.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
+
+              // left px inside first cell based on start time
+              const startMins = ps.hour * 60 + ps.minute;
+              const leftPx = (startMins / 1440) * cellW;
+
+              // width px = remaining of start day + full middle days + part of end day
+              const endMins = pe.hour * 60 + pe.minute;
+              const rightPxInEnd = (endMins / 1440) * cellW;
+
+              const daysBetween = endIdx - startIdx;
+              let widthPx = (daysBetween * cellW) - leftPx + rightPxInEnd;
+              widthPx = Math.max(2, widthPx);
+
+              const bar = document.createElement('div');
+              bar.className = 'event-bar-span';
+              bar.style.background = evt.color;
+              bar.style.left = `${leftPx}px`;
+              bar.style.width = `${widthPx}px`;
+
+              bar.dataset.name = (uiLang === 'en' ? evt.name_en : evt.name);
+              bar.dataset.start = fmtInTZ(occ.start, tz);
+              bar.dataset.end = fmtInTZ(occ.end, tz);
+
+              bar.addEventListener('pointerenter', (e2) => {
+                if (e2.pointerType === 'mouse' && !tooltipPinned) showTooltipForBar(bar);
+              });
+              bar.addEventListener('pointerleave', (e2) => {
+                if (e2.pointerType === 'mouse' && !tooltipPinned) tooltipEl.style.opacity = '0';
+              });
+              bar.addEventListener('pointerdown', (e2) => {
+                e2.preventDefault();
+                tooltipPinned = true;
+                showTooltipForBar(bar);
+              }, { passive: false });
+
+              startCell.style.overflow = 'visible';
+              startCell.appendChild(bar);
+              return;
+            }
+
+            // Normal (single-day anchored) bar
             const p = partsInTZ(occ.start, tz);
             if (!p) return;
 
@@ -724,14 +778,14 @@
             bar.dataset.start = fmtInTZ(occ.start, tz);
             bar.dataset.end = fmtInTZ(occ.end, tz);
 
-            bar.addEventListener('pointerenter', (e) => {
-              if (e.pointerType === 'mouse' && !tooltipPinned) showTooltipForBar(bar);
+            bar.addEventListener('pointerenter', (e2) => {
+              if (e2.pointerType === 'mouse' && !tooltipPinned) showTooltipForBar(bar);
             });
-            bar.addEventListener('pointerleave', (e) => {
-              if (e.pointerType === 'mouse' && !tooltipPinned) tooltipEl.style.opacity = '0';
+            bar.addEventListener('pointerleave', (e2) => {
+              if (e2.pointerType === 'mouse' && !tooltipPinned) tooltipEl.style.opacity = '0';
             });
-            bar.addEventListener('pointerdown', (e) => {
-              e.preventDefault();
+            bar.addEventListener('pointerdown', (e2) => {
+              e2.preventDefault();
               tooltipPinned = true;
               showTooltipForBar(bar);
             }, { passive: false });
@@ -742,7 +796,6 @@
         });
       });
 
-      // Post-render position refresh (mobile layout)
       requestAnimationFrame(() => {
         updateClock();
         updateTimeline();
@@ -778,7 +831,6 @@
       }, 200);
     }
 
-    // ---------- Events ----------
     document.getElementById('langBtn').addEventListener('click', () => {
       uiLang = (uiLang === 'ja') ? 'en' : 'ja';
       localStorage.setItem(LS_LANG, uiLang);
