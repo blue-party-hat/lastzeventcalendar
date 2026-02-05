@@ -23,6 +23,9 @@
 
       --sticky-w:140px;
       --cell-w:30px;
+
+      /* NEW: mobile sticky width */
+      --sticky-w-mobile: 150px;
     }
 
     *{ box-sizing:border-box; }
@@ -152,6 +155,7 @@
       background:var(--bg-header);
     }
 
+    /* Sticky first column */
     .sticky-col{
       position:sticky;
       left:0;
@@ -160,11 +164,13 @@
       max-width:var(--sticky-w);
       background:var(--bg-panel);
       border-right:2px solid #555;
-      z-index:45;
+      z-index:20; /* CHANGED: keep body sticky cells below header corner */
     }
+
+    /* Header sticky cell (Event) */
     .sticky-col.header{
       background:var(--bg-header);
-      z-index:55;
+      z-index:80; /* CHANGED: highest priority so it never gets overlapped */
       text-align:center;
       font-size:11px;
       color:var(--muted);
@@ -179,7 +185,9 @@
       padding:8px 0;
       background:var(--bg-header);
       scroll-snap-align: start;
+      z-index:45;
     }
+
     .date-cell{
       width:var(--cell-w);
       text-align:center;
@@ -212,24 +220,33 @@
     .group-row td:first-child{
       position:sticky;
       left:0;
-      z-index:46;
+      z-index:30; /* CHANGED: below the header corner but above normal cells */
       background:linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
       box-shadow:2px 0 12px rgba(0,0,0,.8);
     }
 
     .event-row{ height:34px; }
+
+    /* CHANGED: better mobile wrapping */
     .event-name{
       height:34px;
       display:flex;
       align-items:center;
-      justify-content:center;
+      justify-content:flex-start; /* CHANGED: left align reads better on mobile */
       font-size:11px;
       color:#eee;
       padding:0 10px;
-      white-space:nowrap;
+      text-align:left;
+
+      /* allow 2-line clamp instead of hard cut */
+      white-space:normal;
       overflow:hidden;
       text-overflow:ellipsis;
-      text-align:center;
+
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:2;
+      line-height:1.15;
     }
 
     .grid-cell{
@@ -254,7 +271,6 @@
       background:transparent;
     }
 
-    /* Multi-day overlay bar, spans across multiple day cells */
     .event-bar-span{
       position:absolute;
       top:4px;
@@ -311,11 +327,25 @@
       box-shadow:0 0 14px var(--timeline);
     }
 
+    /* Mobile tuning */
     @media (max-width: 768px){
-      :root{ --sticky-w:110px; --cell-w:26px; }
+      :root{
+        --sticky-w: var(--sticky-w-mobile); /* CHANGED: more room for English names */
+        --cell-w: 26px;
+      }
+
       .header-container{ padding:10px 12px; }
       .group-row td{ font-size:11px; padding:8px 10px; }
       #current-time{ font-size:12px; }
+
+      .event-row{ height:44px; }          /* CHANGED: taller rows to fit 2 lines */
+      .event-name{ height:44px; font-size:11px; }
+    }
+
+    @media (max-width: 380px){
+      :root{
+        --sticky-w-mobile: 165px; /* extra narrow phones */
+      }
     }
   </style>
 </head>
@@ -392,7 +422,6 @@
       }).format(date);
     }
 
-    // Parse numeric parts in target TZ by extracting digits (robust on mobile too).
     function partsInTZ(date, timeZone) {
       const s = new Intl.DateTimeFormat('en-CA', {
         timeZone,
@@ -407,7 +436,6 @@
       return { year:Y, month:M, day:D, hour:h, minute:m, second:sec };
     }
 
-    // ISO8601 with explicit offset is unambiguous in JS Date parsing. [web:191][web:188]
     function parseJST(dStr, tStr) {
       return new Date(`${dStr}T${tStr}:00+09:00`);
     }
@@ -439,16 +467,17 @@
         title: 'その他',
         title_en: 'Misc',
         events: [
-          {
-            name: 'ローカル首都戦',
-            name_en: 'Local Capital Clash',
-            color: 'linear-gradient(90deg, #fce38a, #f38181)',
-            startDate: '2026-02-05',
-            startTime: '23:00',
-            endDate: '2026-02-06',
-            endTime: '03:00',
-            cycle: 14
-          },
+      {
+        name: 'ローカル首都戦',
+        name_en: 'Local Capital Clash',
+        color: 'linear-gradient(90deg, #fce38a, #f38181)',
+        startDate: '2026-02-06',   // <-- changed (was 2026-02-05)
+        startTime: '23:00',
+        endDate: '2026-02-07',     // <-- changed to next day to match 23:00 → 03:00
+        endTime: '03:00',
+        cycle: 14
+      },
+
           {
             name: 'シーズン２',
             name_en: 'Season 2',
@@ -488,7 +517,6 @@
         if (end > rangeStart) out.push({ start: new Date(cur), end, isSpan: false });
         cur = new Date(cur.getTime() + cycleMs);
       }
-
       return out;
     }
 
@@ -534,6 +562,10 @@
       document.getElementById('langBtn').textContent = I18N[uiLang].langBtn;
       document.getElementById('nowBtn').textContent = I18N[uiLang].now;
       document.getElementById('rangeDisplay').textContent = I18N[uiLang].yearRange;
+
+      // Update corner header text too (for language switch)
+      const corner = document.querySelector('.sticky-col.header');
+      if (corner) corner.textContent = I18N[uiLang].eventCol;
     }
 
     function getStickyWidthPx() {
@@ -656,10 +688,6 @@
         return -1;
       }
 
-      function totalWidthPx(){
-        return totalDays * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
-      }
-
       groups.forEach(grp => {
         const gr = document.createElement('tr');
         gr.className = 'group-row';
@@ -698,9 +726,7 @@
           const occs = getOccurrences(evt, rangeStart, rangeEnd);
 
           occs.forEach(occ => {
-            // If it's a fixed span (Season 2), draw a single long bar across all affected days in 2026
             if (occ.isSpan) {
-              // Clamp span to visible 2026 range
               const s = new Date(Math.max(occ.start.getTime(), rangeStart.getTime()));
               const e = new Date(Math.min(occ.end.getTime(), rangeEnd.getTime()));
 
@@ -712,15 +738,12 @@
               const endIdx = gridIndexForYMD(pe.year, pe.month, pe.day);
               if (startIdx < 0 || endIdx < 0) return;
 
-              // Create an overlay bar inside the first day cell, spanning across cells by px width
               const startCell = cells[startIdx];
-              const cellW = startCell.offsetWidth || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
+              const cellW = startCell.offsetWidth || 30;
 
-              // left px inside first cell based on start time
               const startMins = ps.hour * 60 + ps.minute;
               const leftPx = (startMins / 1440) * cellW;
 
-              // width px = remaining of start day + full middle days + part of end day
               const endMins = pe.hour * 60 + pe.minute;
               const rightPxInEnd = (endMins / 1440) * cellW;
 
@@ -755,7 +778,6 @@
               return;
             }
 
-            // Normal (single-day anchored) bar
             const p = partsInTZ(occ.start, tz);
             if (!p) return;
 
