@@ -440,6 +440,15 @@
       return new Date(`${dStr}T${tStr}:00+09:00`);
     }
 
+    // ─────────────────────────────────────────────
+    // ONLY THIS SECTION WAS CHANGED — new event added to その他/Misc
+    // Cycle calculation:
+    //   Occurrence 1 start: 2026-02-06 11:00 JST
+    //   Occurrence 2 start: 2026-02-27 11:00 JST
+    //   Gap = 21 days  →  cycle: 21
+    //   Duration: Feb 6 11:00 → Feb 17 10:59  =  10 days 23h 59m
+    //   endDate is startDate + 10 days, endTime 10:59
+    // ─────────────────────────────────────────────
     const groups = [
       {
         title: '週次イベント',
@@ -467,17 +476,31 @@
         title: 'その他',
         title_en: 'Misc',
         events: [
-      {
-        name: 'ローカル首都戦',
-        name_en: 'Local Capital Clash',
-        color: 'linear-gradient(90deg, #fce38a, #f38181)',
-        startDate: '2026-02-06',   // <-- changed (was 2026-02-05)
-        startTime: '23:00',
-        endDate: '2026-02-07',     // <-- changed to next day to match 23:00 → 03:00
-        endTime: '03:00',
-        cycle: 14
-      },
-
+          {
+            name: 'ローカル首都戦',
+            name_en: 'Local Capital Clash',
+            color: 'linear-gradient(90deg, #fce38a, #f38181)',
+            startDate: '2026-02-06',
+            startTime: '23:00',
+            endDate: '2026-02-07',
+            endTime: '03:00',
+            cycle: 14
+          },
+          {
+            // ── NEW EVENT ──────────────────────────────────────────────────
+            // Occurrence 1: 2026-02-06 11:00 JST → 2026-02-17 10:59 JST
+            // Occurrence 2: 2026-02-27 11:00 JST → 2026-03-09 10:59 JST
+            // Cycle: 21 days (Feb 6 → Feb 27)
+            // Duration: 10 days 23h 59m  (endDate = startDate + 10 days)
+            name: 'チャンピヨン対決',
+            name_en: 'Champion Duel',
+            color: 'linear-gradient(90deg, #f7971e, #ffd200)',
+            startDate: '2026-02-06',
+            startTime: '11:00',
+            endDate: '2026-02-17',
+            endTime: '10:59',
+            cycle: 21
+          },
           {
             name: 'シーズン２',
             name_en: 'Season 2',
@@ -563,7 +586,6 @@
       document.getElementById('nowBtn').textContent = I18N[uiLang].now;
       document.getElementById('rangeDisplay').textContent = I18N[uiLang].yearRange;
 
-      // Update corner header text too (for language switch)
       const corner = document.querySelector('.sticky-col.header');
       if (corner) corner.textContent = I18N[uiLang].eventCol;
     }
